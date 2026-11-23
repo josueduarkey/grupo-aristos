@@ -495,6 +495,7 @@ body { background: var(--paper); }
 #solucion .slide-head .kicker { grid-column: span 2; }
 #solucion h2 { font-size: clamp(42px, 4.6vw, 72px); line-height: .99; }
 #solucion h2 em { color: #4b6541; }
+#solucion .solution-summary { max-width: 65ch; color: var(--muted); margin-top: 8px; }
 #solucion .flow dt, #solucion .opportunity-notes strong { color: var(--ink); }
 #solucion .opportunity-notes p { font-size: 16px; }
 .process { border-top: 1px solid #2d3d29; padding-bottom: clamp(52px, 7vw, 100px); }
@@ -522,6 +523,11 @@ body { background: var(--paper); }
 #costos .cost-item + .cost-item { margin-top: 8px; }
 #viabilidad { padding-block: clamp(37px, 6vw, 80px); background: #282f22; }
 #viabilidad h2 { font-size: clamp(42px, 4.25vw, 72px); }
+.impact { background: #e6e8d9; border-bottom: 1px solid #c4ccbb; }
+.impact-measures div { border-top: 1px solid #aab59e; padding: 14px 0; }
+.impact-measures div:last-child { border-bottom: 1px solid #aab59e; }
+.impact-measures dt { font-size: clamp(19px, 2vw, 25px); font-weight: 700; line-height: 1.24; }
+.impact-measures dd { margin-top: 4px; color: var(--muted); }
 #piloto .slide-head { margin-bottom: clamp(24px, 3.4vw, 44px); }
 #feedback { padding-block: clamp(35px, 7vw, 88px); }
 #feedback .slide-head { margin-bottom: 25px; }
@@ -640,10 +646,12 @@ body { background: var(--paper); }
   <article class="slide" id="solucion">
     <div class="slide-inner">
       <header class="slide-head">
-        <span class="kicker">Oportunidad y propuesta</span>
+        <span class="kicker">Necesidad y oportunidad</span>
         <h2>El parque ya tiene<br>la <em>materia prima</em></h2>
-        <p class="lead">Proponemos cultivar insertos en AIP y compararlos con el durapax, o poliestireno expandido (EPS), en un envío de mercancía seca.</p>
+        <p class="lead">Aristos necesita darle una salida local a la poda. En el mismo parque hay clientes de logística con quienes se puede probar un embalaje hecho de ese residuo.</p>
       </header>
+      <h3>Propuesta de solución</h3>
+      <p class="solution-summary">Cultivar insertos moldeados con la poda de AIP y compararlos con el durapax, o poliestireno expandido (EPS), en un envío de mercancía seca.</p>
       <dl class="flow">
         <div><dt class="mono">Entra</dt><dd>Poda limpia<small>Ramas trituradas y hojas como base. Evaluar grama por separado.</small></dd></div>
         <div><dt class="mono">Une</dt><dd>Micelio de ostra<small>Las hifas de <i>Pleurotus ostreatus</i> unen las partículas dentro de un molde.</small></dd></div>
@@ -688,7 +696,7 @@ body { background: var(--paper); }
   <article class="slide" id="quimica">
     <div class="slide-inner">
       <header class="slide-head">
-        <span class="kicker">Fundamentación química</span>
+        <span class="kicker">Fundamentación química y técnica</span>
         <h2>Cómo se unen las fibras</h2>
       </header>
       <div class="split wide-media">
@@ -799,7 +807,7 @@ body { background: var(--paper); }
   <article class="slide dark" id="viabilidad">
     <div class="slide-inner">
       <header class="slide-head">
-        <span class="kicker">Viabilidad e impacto para Aristos</span>
+        <span class="kicker">Viabilidad y costos de operación</span>
         <h2>Probar antes de <em>invertir</em></h2>
       </header>
       <dl class="capex-grid">
@@ -814,18 +822,33 @@ body { background: var(--paper); }
           <p>Separar recepción sucia de cultivo limpio. Limitar acopio seco y coordinar la respuesta a incendios con el centro de emergencias de AIP.</p>
         </section>
         <section>
-          <h3>Beneficio medible</h3>
-          <p><strong>Balance mensual</strong> = flete y disposición efectivamente evitados + valor de piezas colocadas − operación. El flete baja cuando se cancela un viaje completo. Si se evitaran los $1,000 reportados, faltarían $3,465 al mes para cubrir la operación estimada de la planta, antes de recuperar la inversión.</p>
-          <p>Registrar kg de poda desviada, piezas aptas, unidades de EPS sustituidas y costo por pieza útil. La trazabilidad puede complementar la constancia anual de residuos.</p>
+          <h3>Balance económico</h3>
+          <p><strong>Balance mensual</strong> = flete y disposición efectivamente evitados + valor de los insertos utilizados o vendidos − costo de operación.</p>
+          <p>Si se evitaran los $1,000 reportados, faltarían $3,465 al mes para cubrir la operación estimada de la planta, antes de recuperar la inversión.</p>
         </section>
       </div>
+    </div>
+  </article>
+
+  <article class="slide impact" id="impacto" aria-labelledby="impact-title">
+    <div class="slide-inner split">
+      <div>
+        <span class="kicker">Impacto y beneficio para Aristos</span>
+        <h2 id="impact-title">¿Qué ganaría el parque?</h2>
+        <p class="lead">Una salida local para parte de la poda y un embalaje que sus clientes podrían usar. El piloto medirá ambos beneficios.</p>
+      </div>
+      <dl class="impact-measures">
+        <div><dt>Menos residuos al relleno</dt><dd>Medir kg de poda desviada, viajes efectivamente cancelados y cobros evitados por flete y disposición.</dd></div>
+        <div><dt>Menos durapax en envíos</dt><dd>Contar insertos aptos y unidades de EPS sustituidas. Comparar el costo por pieza útil y el daño durante la prueba.</dd></div>
+        <div><dt>Mejor trazabilidad</dt><dd>Vincular cada lote a su origen y al cliente que lo usa. El registro puede complementar la constancia anual de residuos.</dd></div>
+      </dl>
     </div>
   </article>
 
   <article class="slide" id="piloto">
     <div class="slide-inner">
       <header class="slide-head">
-        <span class="kicker">Próximos pasos</span>
+        <span class="kicker">Próximos pasos y aspectos por validar</span>
         <h2>Un cliente, un molde, cuatro semanas</h2>
         <p class="lead">Cronograma tentativo, sujeto a la colonización de la mezcla y a la disponibilidad de los recursos.</p>
       </header>
