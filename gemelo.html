@@ -1494,10 +1494,7 @@ if (EMBED && window.parent !== window) {
     if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
     if (!["ArrowRight", "ArrowLeft", "PageDown", "PageUp", "Home", "End", "Escape", "f", "F"].includes(ev.key)) return;
     ev.preventDefault();
-    try {
-      window.parent.dispatchEvent(new KeyboardEvent("keydown", { key: ev.key, bubbles: true }));
-      window.parent.focus();
-    } catch (err) { /* página de otro origen */ }
+    window.parent.postMessage({ type: "miceliaip-key", key: ev.key }, "*");
   });
 }
 

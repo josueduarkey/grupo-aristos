@@ -1337,6 +1337,15 @@ addEventListener("keydown", (event) => {
 });
 
 get("show-sources").addEventListener("click", () => get("sources").showModal());
+// El gemelo 3D (iframe) reenvía las teclas de navegación para seguir cambiando de diapositiva
+const deckKeys = ["ArrowRight", "ArrowLeft", "PageDown", "PageUp", "Home", "End", "Escape", "f", "F"];
+addEventListener("message", (event) => {
+  const frame = document.querySelector(".twin-frame");
+  const data = event.data;
+  if (!frame || event.source !== frame.contentWindow || !data || data.type !== "miceliaip-key") return;
+  if (!deckKeys.includes(data.key)) return;
+  dispatchEvent(new KeyboardEvent("keydown", { key: data.key }));
+});
 
 const phaseZones = [
   "Recepción y trituración", "Recepción y trituración", "Tratamiento térmico",
