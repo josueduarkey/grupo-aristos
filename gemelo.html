@@ -1454,7 +1454,7 @@ function updateTour(dt) {
 }
 function tourCard() {
   if (tour.delivered) return { html: "<span class='kicker'>Entrega · 08/08</span><h3>La pieza llega al cliente</h3><p class='zone-line'>Clientes de logística</p><p>Las piezas aprobadas salen a los clientes del parque. Las rechazadas y la poda que sobra van al compost.</p>", space: "Cada lote queda vinculado al cliente que lo usó, para la constancia anual de residuos." };
-  if (tour.step < 0) return { html: "<span class='kicker'>Recorrido del proceso</span><h3>Un lote, de la poda al cliente</h3><p>En un minuto, seguí un lote por las ocho etapas del piloto, en el mismo orden de la diapositiva del proceso. Tocá «Reproducir proceso» o elegí una etapa.</p>", space: "Espacio de referencia para el piloto de 8 × 6 m (48 m²), por confirmar con Aristos." };
+  if (tour.step < 0) return { html: "<span class='kicker'>Recorrido del proceso</span><h3>Un lote, de la poda al cliente</h3><p>En un minuto, seguí un lote por las ocho etapas del piloto, de la poda al cliente. Tocá «Reproducir proceso» o elegí una etapa.</p>", space: "Espacio de referencia para el piloto de 8 × 6 m (48 m²), por confirmar con Aristos." };
   const ph = PHASES[tour.step];
   return { html: "<span class='kicker'>" + ph.group + " · " + two(tour.step + 1) + "/08</span><h3>" + ph.title + "</h3><p class='zone-line'>" + ph.zone + "</p><p>" + ph.description + "</p><p><strong>Control</strong> · " + ph.check + "</p>", space: ph.space };
 }
