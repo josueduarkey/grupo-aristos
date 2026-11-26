@@ -1786,6 +1786,28 @@ if (EMBED && window.parent !== window) {
   });
 }
 
+// Recorrido automático: arranca solo al abrir el gemelo o la diapositiva
+function tourStart() {
+  if (!tour.active) setMode("tour");
+  goStep(-1);
+  tour.playing = true; tour.manual = false;
+  goStep(0);
+  renderTour();
+}
+function tourPause() {
+  if (!tour.playing) return;
+  tour.playing = false;
+  renderTour();
+}
+if (EMBED && window.parent !== window) {
+  addEventListener("message", (ev) => {
+    const data = ev.data;
+    if (ev.source !== window.parent || !data || data.type !== "miceliaip-twin") return;
+    if (data.action === "start") tourStart();
+    else if (data.action === "pause") tourPause();
+  });
+}
+
 // =====================================================================
 // Bucle
 // =====================================================================
@@ -1821,6 +1843,8 @@ buildStepLists();
 selectZone(3);
 setMode("tour");
 requestAnimationFrame((now) => { lastNow = now; frame(now); });
+if (EMBED && window.parent !== window) window.parent.postMessage({ type: "miceliaip-twin-ready" }, "*");
+else setTimeout(tourStart, 1200);
 </script>
 </body>
 </html>

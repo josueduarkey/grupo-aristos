@@ -1234,6 +1234,12 @@ function showSlide(index, focusHeading = false, updateHash = true) {
   window.scrollTo(0, 0);
   if (focusHeading) slide.querySelector("h1, h2").focus({ preventScroll: true });
   if (slide.id === "proceso") selectPhase(phaseIndex);
+  twinCommand(slide.id === "gemelo" ? "start" : "pause");
+}
+// El gemelo 3D arranca su recorrido solo al llegar a su diapositiva
+function twinCommand(action) {
+  const frame = document.querySelector(".twin-frame");
+  if (frame && frame.contentWindow) frame.contentWindow.postMessage({ type: "miceliaip-twin", action }, "*");
 }
 function showHash() {
   showSlide(indexes.get(location.hash.slice(1)) ?? 0, false, false);
@@ -1342,7 +1348,12 @@ const deckKeys = ["ArrowRight", "ArrowLeft", "PageDown", "PageUp", "Home", "End"
 addEventListener("message", (event) => {
   const frame = document.querySelector(".twin-frame");
   const data = event.data;
-  if (!frame || event.source !== frame.contentWindow || !data || data.type !== "miceliaip-key") return;
+  if (!frame || event.source !== frame.contentWindow || !data) return;
+  if (data.type === "miceliaip-twin-ready") {
+    if (currentSlide !== -1 && slides[currentSlide].id === "gemelo") twinCommand("start");
+    return;
+  }
+  if (data.type !== "miceliaip-key") return;
   if (!deckKeys.includes(data.key)) return;
   dispatchEvent(new KeyboardEvent("keydown", { key: data.key }));
 });
