@@ -570,6 +570,13 @@ body { background: var(--paper); }
 }
 .canvas-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 7px; }
 .canvas-toolbar output { font-variant-numeric: tabular-nums; }
+.canvas-toolbar-actions { display: flex; align-items: center; gap: 6px; }
+.pdf-download { text-decoration: none; white-space: nowrap; }
+@media (max-width: 350px) {
+  .canvas-toolbar { gap: 5px; }
+  .canvas-toolbar-actions { gap: 4px; }
+  .canvas-toolbar-actions .present-control { padding-inline: 6px; }
+}
 .present-control {
   display: inline-flex; align-items: center; gap: 10px; min-height: 32px;
   padding: 3px 9px; border: 1px solid #66745d; border-radius: 4px;
@@ -988,7 +995,10 @@ body { background: var(--paper); }
   <div class="canvas-controls" id="canvas-controls" hidden>
     <div class="canvas-toolbar">
       <output id="workspace-count" aria-live="polite"></output>
-      <button class="present-control" id="present-control" type="button">Presentar <kbd>F</kbd></button>
+      <div class="canvas-toolbar-actions">
+        <a class="present-control pdf-download" href="./output/pdf/MiceliAIP.pdf" download="MiceliAIP.pdf">Descargar PDF</a>
+        <button class="present-control" id="present-control" type="button">Presentar <kbd>F</kbd></button>
+      </div>
     </div>
     <nav class="slide-filmstrip" id="slide-filmstrip" aria-label="Diapositivas"></nav>
   </div>
