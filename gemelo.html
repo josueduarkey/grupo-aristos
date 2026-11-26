@@ -131,6 +131,29 @@ h1, h2, h3, p { margin: 0; }
 .webgl-fallback { position: absolute; inset: 0; display: grid; place-content: center; padding: 24px; text-align: center; color: #d9ddca; z-index: 4; }
 .hint { position: absolute; z-index: 2; right: 10px; bottom: 8px; font-size: 12px; color: #aab497; pointer-events: none; }
 
+/* Modos: recorrido del proceso y simulación */
+body.mode-tour .sim-only, body.mode-sim .tour-only { display: none !important; }
+.modes { display: inline-flex; border: 1px solid #5d6b4d; border-radius: 3px; overflow: hidden; }
+.mode-btn { border: 0; background: #1f291ee6; color: #e8ebdb; padding: 5px 11px; font-size: 13px; font-weight: 700; min-height: 32px; white-space: nowrap; }
+.mode-btn + .mode-btn { border-left: 1px solid #5d6b4d; }
+.mode-btn:hover { color: var(--lime); }
+.mode-btn[aria-pressed="true"] { background: var(--lime); color: var(--dark); }
+.hud-sim { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.tour-play { min-width: 176px; }
+.tsteps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; }
+.tstep { width: 100%; min-width: 0; text-align: left; display: grid; gap: 1px; padding: 5px 8px 6px; border: 1px solid #5d6b4d; border-top: 3px solid #5d6b4d; border-radius: 3px; background: #1f291ee6; color: #e0e2d3; font-size: 13px; font-weight: 700; line-height: 1.1; }
+.tstep span { font-size: 11px; color: #aab497; font-variant-numeric: tabular-nums; }
+.tstep:hover { border-color: var(--lime); }
+.tstep.done { border-top-color: #8aa05a; }
+.tstep[aria-current="step"] { border-color: var(--lime); background: #37412c; color: var(--lime); }
+.tstep[aria-current="step"] span { color: var(--lime); }
+.tour-bar { position: absolute; z-index: 3; left: 10px; right: 10px; bottom: 10px; }
+.tour-panel { display: flex; gap: 10px; align-items: stretch; }
+.tour-panel .tsteps { flex: 1; }
+.lbl.demo { background: var(--lime); color: var(--dark); border-color: var(--lime); font-size: 12px; padding: 3px 7px; }
+.zone-line { color: var(--lime); font-weight: 700; }
+.floor-head .modes { align-self: center; }
+
 /* HUD (solo en la diapositiva) */
 .hud { display: none; }
 body.embed .hud { display: block; }
@@ -261,6 +284,8 @@ details.assumptions li + li { margin-top: 4px; }
 }
 @media (max-width: 900px) {
   body.embed .hud-zone { display: none; }
+  .tsteps { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .tour-panel { flex-direction: column; }
 }
 </style>
 </head>
@@ -301,6 +326,10 @@ details.assumptions li + li { margin-top: 4px; }
         <h2 id="floor-title">Así se mueven los lotes</h2>
       </div>
       <p>Arrastrá para girar, usá la rueda para acercar y tocá una zona.</p>
+      <div class="modes" role="group" aria-label="Modo de la vista">
+        <button class="mode-btn" type="button" data-mode="tour" aria-pressed="true">Recorrido del proceso</button>
+        <button class="mode-btn" type="button" data-mode="sim" aria-pressed="false">Simulación</button>
+      </div>
     </div>
     <div class="viewport" id="viewport">
       <div class="views" role="group" aria-label="Vistas de la cámara">
@@ -310,18 +339,25 @@ details.assumptions li + li { margin-top: 4px; }
         <button class="vbtn" type="button" data-view="despacho" aria-pressed="false">Despacho</button>
       </div>
       <div class="hud" id="hud">
-        <div class="hud-top" role="group" aria-label="Control de la simulación">
-          <div class="hud-clock"><strong id="h-day" class="num">Día 1</strong><span id="h-time" class="num">Lunes 07:00</span></div>
-          <button class="hbtn play" id="h-play" type="button" aria-pressed="false">▶ Iniciar</button>
-          <button class="hbtn hspeed" type="button" data-speed="12" aria-pressed="true">12 h/s</button>
-          <button class="hbtn hspeed" type="button" data-speed="48" aria-pressed="false">2 d/s</button>
-          <button class="hbtn hspeed" type="button" data-speed="168" aria-pressed="false">1 sem/s</button>
-          <button class="hbtn" id="h-reset" type="button">Reiniciar</button>
+        <div class="hud-top">
+          <div class="modes" role="group" aria-label="Modo de la vista">
+            <button class="mode-btn" type="button" data-mode="tour" aria-pressed="true">Recorrido del proceso</button>
+            <button class="mode-btn" type="button" data-mode="sim" aria-pressed="false">Simulación</button>
+          </div>
+          <button class="hbtn tour-play tour-only" type="button" aria-pressed="false">▶ Reproducir proceso</button>
+          <div class="hud-sim sim-only" role="group" aria-label="Control de la simulación">
+            <div class="hud-clock"><strong id="h-day" class="num">Día 1</strong><span id="h-time" class="num">Lunes 07:00</span></div>
+            <button class="hbtn play" id="h-play" type="button" aria-pressed="false">▶ Iniciar</button>
+            <button class="hbtn hspeed" type="button" data-speed="12" aria-pressed="true">12 h/s</button>
+            <button class="hbtn hspeed" type="button" data-speed="48" aria-pressed="false">2 d/s</button>
+            <button class="hbtn hspeed" type="button" data-speed="168" aria-pressed="false">1 sem/s</button>
+            <button class="hbtn" id="h-reset" type="button">Reiniciar</button>
+          </div>
         </div>
         <a class="hud-open" href="/gemelo" target="_blank" rel="noopener">Abrir completo ↗</a>
-        <div class="hud-alert" id="h-alert" role="status" hidden></div>
+        <div class="hud-alert sim-only" id="h-alert" role="status" hidden></div>
         <div class="hud-zone" id="h-zone"></div>
-        <div class="hud-bottom">
+        <div class="hud-bottom sim-only">
           <dl class="hud-kpis">
             <div><dt>Poda fuera del relleno</dt><dd id="hk-div">0 kg</dd></div>
             <div><dt>Piezas aprobadas</dt><dd id="hk-good">0</dd></div>
@@ -338,9 +374,14 @@ details.assumptions li + li { margin-top: 4px; }
             <button class="hbtn hscale" type="button" data-molds="3300" aria-pressed="false">Planta</button>
           </div>
         </div>
+        <ol class="tsteps tour-bar tour-only" aria-label="Etapas del proceso"></ol>
       </div>
       <p class="webgl-fallback" id="webgl-fallback" hidden>Este navegador no pudo abrir la vista 3D (WebGL). Los indicadores y la bitácora siguen funcionando.</p>
       <p class="hint">Arrastrá para girar · rueda para acercar</p>
+    </div>
+    <div class="tour-panel tour-only">
+      <button class="tbtn tour-play" type="button" aria-pressed="false">▶ Reproducir proceso</button>
+      <ol class="tsteps" aria-label="Etapas del proceso"></ol>
     </div>
     <div class="legend" aria-label="Leyenda">
       <span><i style="background:#a07a4c"></i>Poda en preparación</span>
@@ -495,6 +536,42 @@ const ZONES = [
     what: "Se mide densidad y compresión y se compara con el durapax en una prueba de caída. Las piezas aprobadas se empacan para el cliente.",
     eq: "Banco de ensayo, balanza y estante de pedidos.",
     check: "Aceptar solo piezas que cumplan el criterio acordado y registrar rechazos." }
+];
+
+// Textos del recorrido: los mismos de la diapositiva "Así se fabrica una pieza"
+const PHASES = [
+  { group: "Preparación", short: "Separar", title: "Separar la poda", zone: "Recepción y trituración",
+    description: "Recolectar ramas y hojas limpias. Retirar plástico, piedras y material con tratamiento químico desconocido.",
+    check: "Pesar y etiquetar por origen y fecha.",
+    space: "Una mesa próxima a la entrada y recipientes separados para ramas, hojas y material descartado." },
+  { group: "Preparación", short: "Triturar", title: "Triturar y clasificar", zone: "Recepción y trituración",
+    description: "Chipear las ramas y tamizar la mezcla. Un tamaño más uniforme ayuda a llenar el molde de forma repetible.",
+    check: "Registrar granulometría, masa y proporción de cada fracción.",
+    space: "Trituradora compacta junto al acopio. La poda chipeada se recoge en un recipiente para llevarla a tratamiento." },
+  { group: "Preparación", short: "Tratar", title: "Acondicionar con calor", zone: "Tratamiento térmico",
+    description: "Ajustar la humedad y aplicar un tratamiento térmico para reducir la competencia microbiana. Enfriar el sustrato antes de inocular.",
+    check: "Validar y registrar humedad, temperatura y tiempo por lote.",
+    space: "Gabinete térmico cerrado, bandejas y un carro para llevar el sustrato acondicionado hacia el área limpia." },
+  { group: "Moldeo", short: "Inocular", title: "Inocular y llenar el molde", zone: "Moldeo en zona limpia",
+    description: "En el área limpia, mezclar el sustrato frío con inóculo de hongo ostra. Llenar moldes reutilizables con una cantidad uniforme.",
+    check: "Etiquetar formulación, molde y lote de inóculo.",
+    space: "Mesa lavable de acero, moldes reutilizables y bandejas etiquetadas en un área separada de la entrada de poda." },
+  { group: "Crecimiento", short: "Incubar", title: "Dejar crecer la red", zone: "Incubación",
+    description: "Durante la incubación, las hifas cruzan los huecos, envuelven las fibras y consolidan la pieza. El borrador estima unas 2–3 semanas, por validar.",
+    check: "Registrar temperatura y humedad. Revisar colonización y señales de moho.",
+    space: "Estanterías con bandejas identificadas por lote en un espacio con temperatura y humedad controladas." },
+  { group: "Acabado", short: "Secar", title: "Desmoldar y secar", zone: "Desmolde y secado",
+    description: "Retirar la pieza cuando conserve su forma. Secar con calor para detener el crecimiento y disminuir la humedad antes del empaque.",
+    check: "Medir masa final y revisar contracción, grietas y deformación.",
+    space: "Mesa de desmolde, horno de bandejas y un área seca para dejar enfriar las piezas antes del control." },
+  { group: "Validación", short: "Ensayar", title: "Comparar con durapax", zone: "Calidad y despacho",
+    description: "Medir densidad, compresión y absorción de agua. Comparar ambas alternativas en una caída con la misma caja y la misma carga.",
+    check: "Aceptar solo piezas que cumplan el criterio acordado. Segregar y documentar rechazos.",
+    space: "Banco de ensayo para pesar y medir las piezas y evaluar su resistencia. Las piezas aprobadas pasan a empaque." },
+  { group: "Entrega", short: "Empacar", title: "Proteger un envío", zone: "Calidad y despacho",
+    description: "Colocar un inserto a cada extremo del producto y cerrar la caja. Mantener las piezas secas hasta su uso.",
+    check: "Vincular el lote al cliente y registrar piezas usadas, daños y destino final.",
+    space: "Mesa con cajas, insertos secos y un estante para los pedidos listos para despacho." }
 ];
 
 // =====================================================================
@@ -728,7 +805,7 @@ function makeLabel(html, cls = "") {
 }
 
 let sun, hemi, ovenGlass, ovenLight, acLed, sensorLed, cabinetLed, chipperBody, pileMesh, compostMesh, rellenoFill;
-let racksGroup, mist, acFlow;
+let racksGroup, mist, acFlow, lotsGroup, demo, demoLabel, testerPiston, pistonBaseY = 0;
 const workers = [];
 const palletBoxes = [];
 let selectOutline = null;
@@ -864,7 +941,8 @@ function buildScene() {
   box(0.34, 0.05, 0.28, mat.darkSteel, 7.6, 0.9, 3.9, scene, 5);
   for (const sx of [-0.13, 0.13]) cyl(0.022, 0.022, 0.72, mat.steel, 7.6 + sx, 0.95, 3.9, scene, 5, 10);
   box(0.38, 0.07, 0.12, mat.darkSteel, 7.6, 1.6, 3.9, scene, 5);
-  cyl(0.03, 0.03, 0.24, mat.steel, 7.6, 1.36, 3.9, scene, 5, 10);
+  testerPiston = cyl(0.03, 0.03, 0.24, mat.steel, 7.6, 1.36, 3.9, scene, 5, 10);
+  pistonBaseY = testerPiston.position.y;
   for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) box(0.03, 1.3, 0.03, mat.darkSteel, 7.15 + sx * 0.55, 0, 5.45 + sz * 0.21, scene, 5);
   for (const y of [0.4, 0.9]) box(1.12, 0.03, 0.45, mat.steel, 7.15, y, 5.45, scene, 5);
   for (const [x, y] of [[6.82, 0.43], [7.48, 0.93]]) box(0.34, 0.26, 0.3, mat.kraft, x, y, 5.45, scene, 5);
@@ -926,6 +1004,19 @@ function buildScene() {
   clientLabel = makeLabel("", "out"); clientLabel.position.copy(W(9.4, 1.55, 4.6)); scene.add(clientLabel);
 
   buildRacks();
+
+  // Lotes de la simulación y lote de muestra del recorrido
+  lotsGroup = new THREE.Group(); scene.add(lotsGroup);
+  demo = new THREE.Mesh(lotGeo, new THREE.MeshStandardMaterial({ color: cPrep, roughness: 0.8, emissive: "#d9eb83", emissiveIntensity: 0.16 }));
+  demo.castShadow = true;
+  demo.add(new THREE.LineSegments(new THREE.EdgesGeometry(lotGeo), new THREE.LineBasicMaterial({ color: "#d9eb83" })));
+  demoLabel = makeLabel("Lote de muestra", "demo");
+  demoLabel.center.set(0.5, 1);
+  demoLabel.position.set(0, 0.32, 0);
+  demo.add(demoLabel);
+  demo.position.copy(PILE_TOP);
+  demo.visible = false;
+  scene.add(demo);
 }
 function makeParticles(n, color, size, opacity) {
   const geo = new THREE.BufferGeometry();
@@ -1049,6 +1140,7 @@ const lotGeo = new THREE.BoxGeometry(0.46, 0.1, 0.32);
 const lot3d = new Map();
 const cPrep = new THREE.Color("#a07a4c"), cGrowA = new THREE.Color("#8b6a43"), cGrowB = new THREE.Color("#efe6c8"), cMold = new THREE.Color("#5b7f3a"), cDone = new THREE.Color("#efe6c8");
 const toPlan = (v) => [v.x + 4, v.y, v.z + 3];
+const PILE_TOP = W(-1.7, 1.0, 1.25);
 function targetFor(lot, counters) {
   if (lot.stage === 4) return { zone: 3, plan: slotPlan(Math.max(0, lot.slot)) };
   const zone = STAGES[lot.stage].zone;
@@ -1064,7 +1156,7 @@ function ensureLotMesh(lot) {
     const m = new THREE.Mesh(lotGeo, new THREE.MeshStandardMaterial({ color: cPrep, roughness: 0.9 }));
     m.castShadow = true; m.receiveShadow = true;
     m.position.copy(W(-1.7, 1.0, 1.25));
-    scene.add(m);
+    lotsGroup.add(m);
     e = { mesh: m, zone: -1, path: [], goal: null, exiting: null, fade: 1 };
     lot3d.set(lot.id, e);
   }
@@ -1080,7 +1172,7 @@ function moveAlong(e, dt) {
     else { e.mesh.position.lerp(next, remaining / d); remaining = 0; }
   }
 }
-function removeLot(id, e) { scene.remove(e.mesh); e.mesh.material.dispose(); lot3d.delete(id); }
+function removeLot(id, e) { lotsGroup.remove(e.mesh); e.mesh.material.dispose(); lot3d.delete(id); }
 function updateLots(dt, time) {
   for (const ev of S.exits.splice(0)) {
     const e = lot3d.get(ev.id);
@@ -1175,7 +1267,7 @@ const glassCool = new THREE.Color("#d4e6d2"), glassHot = new THREE.Color("#e8977
 let lastCounts = "";
 function setLabel(obj, html) { if (obj.userData.html !== html) { obj.element.innerHTML = html; obj.userData.html = html; } }
 function updatePlant(dt, time) {
-  const hour = (S.t % 24) + Math.min(acc, 0.99);
+  const hour = tour.active ? 11 : (S.t % 24) + Math.min(acc, 0.99);
   const ang = Math.PI * (hour - 6) / 12;
   const day = Math.max(0, Math.sin(ang));
   sun.position.set(Math.cos(ang) * 11, 4 + 10 * Math.max(0.12, day), 5);
@@ -1191,15 +1283,17 @@ function updatePlant(dt, time) {
   sensorLed.material.emissiveIntensity = Math.sin(time * (alarm ? 9 : 3)) > 0 ? 2.4 : 0.4;
   // Equipos activos
   const live = S.lots.filter((l) => !l.gone);
-  const drying = live.some((l) => l.stage === 5);
+  const ts = tour.active ? (tour.delivered ? 8 : tour.step) : null;
+  const drying = tour.active ? ts === 5 : live.some((l) => l.stage === 5);
   ovenGlass.material.emissiveIntensity += ((drying ? 1.6 : 0) - ovenGlass.material.emissiveIntensity) * Math.min(1, dt * 3);
   ovenLight.intensity = drying ? 2.2 + Math.sin(time * 5) * 0.15 : 0;
-  cabinetLed.material.emissive.set(live.some((l) => l.stage === 2) ? "#ff8a2a" : "#3a3a2a");
-  const chipping = running && isWorkHour(S.t) && live.some((l) => l.stage === 1);
+  cabinetLed.material.emissive.set((tour.active ? ts === 2 : live.some((l) => l.stage === 2)) ? "#ff8a2a" : "#3a3a2a");
+  const chipping = tour.active ? ts === 1 : running && isWorkHour(S.t) && live.some((l) => l.stage === 1);
+  testerPiston.position.y = pistonBaseY - (tour.active && ts === 6 ? 0.06 + 0.06 * Math.sin(time * 3) : 0);
   chipperBody.position.x = CHIPPER_X + (chipping ? Math.sin(time * 70) * 0.006 : 0);
   // Personal en jornada
   const work = isWorkHour(S.t);
-  workers.forEach((w, i) => { w.visible = work; w.children[2].position.y = 1.62 + Math.sin(time * 2 + i) * 0.01; });
+  workers.forEach((w, i) => { w.visible = work || tour.active; w.children[2].position.y = 1.62 + Math.sin(time * 2 + i) * 0.01; });
   // Afuera
   const pr = Math.min(2.4, 0.45 + 0.035 * Math.sqrt(S.pile));
   pileMesh.scale.set(pr, Math.max(0.25, pr * 0.55), pr);
@@ -1210,11 +1304,12 @@ function updatePlant(dt, time) {
   rellenoFill.position.y = -0.1 + 0.05 + Math.min(0.75, S.kgRelleno / 40000 * 0.75);
   rellenoFill.visible = S.kgRelleno > 0;
   const boxes = Math.min(27, Math.ceil(S.good / Math.max(1, lotSize())));
-  palletBoxes.forEach((b, i) => { b.visible = i < boxes; });
+  const shown = tour.active ? (tour.delivered && !tour.path.length ? 1 : 0) : boxes;
+  palletBoxes.forEach((b, i) => { b.visible = i < shown; });
   updateParticles(dt);
   // Etiquetas
   const counts = ZONES.map(() => 0);
-  for (const l of live) counts[STAGES[l.stage].zone]++;
+  if (!tour.active) for (const l of live) counts[STAGES[l.stage].zone]++;
   const key = counts.join(",");
   if (key !== lastCounts) {
     lastCounts = key;
@@ -1231,6 +1326,153 @@ function updatePlant(dt, time) {
   if (clim.className !== climCls) clim.className = climCls;
 }
 
+// Recorrido del proceso: un lote de muestra pasa por las 8 etapas en orden
+const TOUR = [
+  { zone: 0, spot: [1.2, 0.975, 0.55], cam: [1.5, 0.5, 0.9] },
+  { zone: 0, spot: [2.3, 0.5, 1.5], cam: [2.1, 0.5, 1.2] },
+  { zone: 1, spot: [4.0, 0.685, 1.6], cam: [4.0, 0.6, 1.2] },
+  { zone: 2, spot: [6.5, 0.975, 0.75], cam: [6.4, 0.6, 1.0] },
+  { zone: 3, spot: [2.0, 0.485, 4.8], cam: [2.1, 0.5, 4.6] },
+  { zone: 4, spot: [5.38, 0.975, 5.3], cam: [5.4, 0.6, 4.6] },
+  { zone: 5, spot: [6.75, 0.975, 3.9], cam: [7.0, 0.6, 4.1] },
+  { zone: 5, spot: [6.85, 0.965, 5.45], cam: [7.4, 0.6, 4.9] }
+];
+const FIRST_STEP = [0, 2, 3, 4, 5, 6];
+const TOUR_OFFSET = new THREE.Vector3(1.8, 5.2, 3.8);
+const tour = { active: false, step: -1, playing: false, t: 0, arrived: null, zone: -1, delivered: false, path: [] };
+const two = (n) => String(n).padStart(2, "0");
+function tourRoute(fromZone, from, toZone, to) {
+  if (fromZone !== -1) return routePlan(fromZone, from, toZone, to);
+  const pts = exitPts(-1, from);
+  if (toZone !== 0) pts.push([ENTRY[0], CARRY, DOORZ[0]], [ENTRY[0], CARRY, CORR], ...enterPts(toZone, to));
+  pts.push(to);
+  return pts;
+}
+function flyTo(plan) {
+  if (!controls) return;
+  const target = W(...plan);
+  if (EMBED) target.x -= 0.8; // la tarjeta de la etapa ocupa la izquierda
+  $$(".vbtn").forEach((b) => b.setAttribute("aria-pressed", "false"));
+  camTween = { t: 0, fromPos: camera.position.clone(), fromTarget: controls.target.clone(), to: { pos: target.clone().add(TOUR_OFFSET), target } };
+}
+function clearZoneHighlight() {
+  zoneTiles.forEach((m) => { m.material.emissive.set("#000000"); m.material.emissiveIntensity = 0; });
+  zoneLabels.forEach((l) => l.element.classList.remove("sel"));
+  if (selectOutline) { scene.remove(selectOutline); selectOutline.geometry.dispose(); selectOutline = null; }
+}
+function resetDemo() {
+  tour.zone = -1; tour.delivered = false; tour.path = [];
+  if (!demo) return;
+  demo.position.copy(PILE_TOP);
+  demo.material.transparent = false; demo.material.opacity = 1;
+  demo.visible = tour.active;
+}
+function goStep(i) {
+  tour.step = i; tour.t = 0; tour.arrived = null;
+  if (i < 0) {
+    resetDemo();
+    clearZoneHighlight();
+    goView("general");
+  } else {
+    if (tour.delivered) resetDemo();
+    const st = TOUR[i];
+    if (demo) tour.path = tourRoute(tour.zone, toPlan(demo.position), st.zone, st.spot).map((p) => W(p[0], p[1], p[2]));
+    tour.zone = st.zone;
+    selectZone(st.zone);
+    flyTo(st.cam);
+  }
+  renderTour();
+}
+function finishTour() {
+  tour.playing = false; tour.delivered = true; tour.t = 0; tour.arrived = null;
+  if (demo) tour.path = exitRoute(5, toPlan(demo.position), "client").map((p) => W(p[0], p[1], p[2]));
+  flyTo([8.6, 0.5, 4.8]);
+  renderTour();
+}
+function tourPlay() {
+  if (!tour.active) setMode("tour");
+  if (tour.playing) { tour.playing = false; renderTour(); return; }
+  tour.playing = true;
+  if (tour.step < 0 || tour.delivered) { goStep(-1); tour.playing = true; goStep(0); }
+  renderTour();
+}
+function updateTour(dt) {
+  if (!tour.active || !demo) return;
+  tour.t += dt;
+  let remaining = 2.6 * dt;
+  while (remaining > 0 && tour.path.length) {
+    const next = tour.path[0];
+    const d = demo.position.distanceTo(next);
+    if (d <= remaining) { demo.position.copy(next); tour.path.shift(); remaining -= d; }
+    else { demo.position.lerp(next, remaining / d); remaining = 0; }
+  }
+  if (!tour.path.length && tour.arrived === null) tour.arrived = tour.t;
+  const since = tour.arrived === null ? 0 : tour.t - tour.arrived;
+  const m = demo.material;
+  if (tour.delivered) {
+    if (!tour.path.length) { m.transparent = true; m.opacity = Math.max(0, 1 - since * 1.2); }
+  } else if (tour.step <= 3) m.color.copy(cPrep);
+  else if (tour.step === 4) m.color.copy(cGrowA).lerp(cGrowB, Math.min(1, since / 3.5));
+  else m.color.copy(cDone);
+  const dwell = tour.step === 4 ? 4.6 : 3.6;
+  if (tour.playing && tour.arrived !== null && since >= dwell) {
+    if (tour.step < TOUR.length - 1) goStep(tour.step + 1);
+    else finishTour();
+  }
+}
+function tourCard() {
+  if (tour.delivered) return { html: "<span class='kicker'>Entrega · 08/08</span><h3>La pieza llega al cliente</h3><p class='zone-line'>Clientes de logística</p><p>Las piezas aprobadas salen a los clientes del parque. Las rechazadas y la poda que sobra van al compost.</p>", space: "Cada lote queda vinculado al cliente que lo usó, para la constancia anual de residuos." };
+  if (tour.step < 0) return { html: "<span class='kicker'>Recorrido del proceso</span><h3>Un lote, de la poda al cliente</h3><p>Seguí un lote por las ocho etapas del piloto, en el mismo orden de la diapositiva del proceso. Tocá «Reproducir proceso» o elegí una etapa.</p>", space: "Espacio de referencia para el piloto de 8 × 6 m (48 m²), por confirmar con Aristos." };
+  const ph = PHASES[tour.step];
+  return { html: "<span class='kicker'>" + ph.group + " · " + two(tour.step + 1) + "/08</span><h3>" + ph.title + "</h3><p class='zone-line'>" + ph.zone + "</p><p>" + ph.description + "</p><p><strong>Control</strong> · " + ph.check + "</p>", space: ph.space };
+}
+function renderTour() {
+  $$(".tstep").forEach((b) => {
+    const i = Number(b.dataset.step);
+    if (tour.active && i === tour.step && !tour.delivered) b.setAttribute("aria-current", "step"); else b.removeAttribute("aria-current");
+    b.classList.toggle("done", tour.active && (tour.delivered || i < tour.step));
+  });
+  const label = tour.playing ? "❚❚ Pausar" : tour.delivered ? "↺ Repetir proceso" : tour.step >= 0 ? "▶ Seguir proceso" : "▶ Reproducir proceso";
+  $$(".tour-play").forEach((b) => { b.textContent = label; b.setAttribute("aria-pressed", String(tour.playing)); });
+  if (demoLabel) setLabel(demoLabel, tour.delivered ? "Entregado" : tour.step >= 0 ? two(tour.step + 1) + " · " + PHASES[tour.step].short : "Lote de muestra");
+  lastZoneHtml = ""; lastHudZone = "";
+  renderZoneInfo();
+  placeHud();
+}
+function setMode(mode) {
+  const on = mode === "tour";
+  tour.active = on;
+  document.body.classList.toggle("mode-tour", on);
+  document.body.classList.toggle("mode-sim", !on);
+  $$(".mode-btn").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mode === mode)));
+  if (lotsGroup) lotsGroup.visible = !on;
+  if (on) {
+    setRunning(false);
+    if (demo) demo.visible = true;
+    goStep(tour.delivered ? -1 : tour.step);
+  } else {
+    tour.playing = false;
+    if (demo) demo.visible = false;
+    selectZone(selectedZone);
+    goView("general");
+    renderTour();
+  }
+  lastCounts = "";
+  renderPanels();
+}
+function buildStepLists() {
+  $$(".tsteps").forEach((list) => {
+    PHASES.forEach((ph, i) => {
+      const li = document.createElement("li");
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "tstep"; b.dataset.step = i;
+      b.innerHTML = "<span>" + two(i + 1) + "</span>" + ph.short;
+      b.addEventListener("click", () => { if (!tour.active) setMode("tour"); tour.playing = false; goStep(i); });
+      li.append(b); list.append(li);
+    });
+  });
+}
+
 // Interacción: clic en zonas
 const raycaster = new THREE.Raycaster();
 const ndc = new THREE.Vector2();
@@ -1244,7 +1486,7 @@ function pick(ev) {
 }
 function placeHud() {
   if (!EMBED) return;
-  const bottom = document.querySelector(".hud-bottom");
+  const bottom = document.querySelector(tour.active ? ".tour-bar" : ".hud-bottom");
   $("h-zone").style.bottom = (bottom.offsetHeight + 18) + "px";
 }
 function resize() {
@@ -1282,7 +1524,7 @@ function initRenderer() {
     if (!down) return;
     if (Math.hypot(ev.clientX - down.x, ev.clientY - down.y) < 6 && performance.now() - down.t < 500) {
       const z = pick(ev);
-      if (z !== null) selectZone(z);
+      if (z !== null) { if (tour.active) { tour.playing = false; goStep(FIRST_STEP[z]); } else selectZone(z); }
     }
     down = null;
   });
@@ -1317,6 +1559,16 @@ function zoneLots(z, max) {
   return { count: here.length, html: here.length ? "<strong>" + here.length + (here.length === 1 ? " lote" : " lotes") + " aquí ahora</strong><ul>" + list + extra + "</ul>" : "<strong>Sin lotes en este momento.</strong>" };
 }
 function renderZoneInfo() {
+  if (tour.active) {
+    const card = tourCard();
+    if (EMBED) {
+      if (card.html !== lastHudZone) { $("h-zone").innerHTML = card.html; lastHudZone = card.html; }
+    } else {
+      const html = "<div>" + card.html + "</div><div class='zone-now'><strong>Cómo se vería.</strong> " + card.space + "</div>";
+      if (html !== lastZoneHtml) { $("zone-info").innerHTML = html; lastZoneHtml = html; }
+    }
+    return;
+  }
   const z = ZONES[selectedZone];
   if (EMBED) {
     const { count } = zoneLots(z, 0);
@@ -1443,6 +1695,7 @@ function setParam(key, value) {
   renderPanels();
 }
 function setRunning(on) {
+  if (on && tour.active) setMode("sim");
   running = on;
   const label = on ? "❚❚ Pausar" : (S.t > 7 ? "▶ Seguir" : "▶ Iniciar");
   for (const id of ["play", "h-play"]) { const b = $(id); b.setAttribute("aria-pressed", String(on)); b.textContent = label; }
@@ -1486,6 +1739,8 @@ $("p-tons").addEventListener("input", (e) => { P.tons = Number(e.target.value); 
 $("p-days").addEventListener("input", (e) => { P.days = Number(e.target.value); $("o-days").textContent = P.days + " días"; });
 $("p-set").addEventListener("input", (e) => { P.set = Number(e.target.value); $("o-set").textContent = P.set + " °C"; });
 $$(".vbtn").forEach((b) => b.addEventListener("click", () => goView(b.dataset.view)));
+$$(".mode-btn").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
+$$(".tour-play").forEach((b) => b.addEventListener("click", tourPlay));
 
 // En la diapositiva: las flechas siguen cambiando de diapositiva
 if (EMBED && window.parent !== window) {
@@ -1515,6 +1770,7 @@ function frame(now) {
     updateCamTween(dt);
     controls.update();
     updateLots(dt, elapsed);
+    updateTour(dt);
     updatePlant(dt, elapsed);
     renderer.render(scene, camera);
     labelRenderer.render(scene, camera);
@@ -1527,7 +1783,9 @@ S = freshState();
 initRenderer();
 reset();
 syncControls();
+buildStepLists();
 selectZone(3);
+setMode("tour");
 requestAnimationFrame((now) => { lastNow = now; frame(now); });
 </script>
 </body>
