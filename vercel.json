@@ -4,6 +4,10 @@
     {
       "source": "/",
       "destination": "/MiceliAIP.html"
+    },
+    {
+      "source": "/gemelo",
+      "destination": "/gemelo.html"
     }
   ]
 }

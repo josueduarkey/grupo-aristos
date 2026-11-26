@@ -1,0 +1,1850 @@
+<!DOCTYPE html>
+<html lang="es-SV">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#1b2118">
+<title>Gemelo digital 3D · Planta piloto MiceliAIP</title>
+<link rel="icon" href="data:,">
+<!-- Atkinson Hyperlegible Next · Braille Institute · SIL Open Font License 1.1 (https://openfontlicense.org) -->
+<!-- three.js r187 · MIT License · /vendor/three/LICENSE -->
+<script type="importmap">
+{ "imports": { "three": "/vendor/three/three.module.js", "three/addons/": "/vendor/three/addons/" } }
+</script>
+<style>
+@font-face {
+  font-family: "Atkinson Hyperlegible Next";
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url("/fonts/atkinson-next.woff2") format("woff2");
+}
+:root {
+  color-scheme: light;
+  --paper: #f4f2e7;
+  --paper-2: #e7ead7;
+  --ink: #20261c;
+  --dark: #1b2118;
+  --panel: #202a20;
+  --panel-2: #283424;
+  --muted: #555c4c;
+  --rule: #c7cab9;
+  --lime: #d9eb83;
+  --olive: #57744c;
+  --moss: #72925b;
+  --warn: #e0a24a;
+  --alert: #d4654a;
+  --sans: "Atkinson Hyperlegible Next", "Segoe UI", Arial, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--paper); color: var(--ink); font: 400 16px/1.45 var(--sans); }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+a { color: inherit; text-underline-offset: 4px; }
+:focus-visible { outline: 2px solid #798131; outline-offset: 3px; }
+.dark :focus-visible, .viewport :focus-visible { outline-color: var(--lime); }
+h1, h2, h3, p { margin: 0; }
+[hidden] { display: none !important; }
+.kicker { display: block; font-size: 13px; font-weight: 750; letter-spacing: .06em; text-transform: uppercase; color: #576646; }
+.dark .kicker { color: var(--lime); }
+.fine { font-size: 13px; color: var(--muted); }
+.num { font-variant-numeric: tabular-nums; }
+
+/* Barra superior */
+.topbar {
+  position: sticky; top: 0; z-index: 5; background: var(--dark); color: var(--paper);
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 22px; padding: 10px clamp(14px, 2.4vw, 32px);
+  border-bottom: 1px solid #39452f;
+}
+.back { font-size: 14px; font-weight: 700; text-decoration: none; color: #d8dcc9; white-space: nowrap; }
+.back:hover { color: var(--lime); }
+.title { display: grid; gap: 1px; margin-right: auto; }
+.title h1 { font-size: clamp(19px, 1.7vw, 25px); font-weight: 650; letter-spacing: -.02em; line-height: 1.1; }
+.title .kicker { font-size: 12px; }
+.clock { display: grid; text-align: right; line-height: 1.15; }
+.clock strong { font-size: 22px; font-weight: 700; color: var(--lime); }
+.clock span { font-size: 13px; color: #c5c9b7; }
+.transport { display: flex; align-items: center; gap: 6px; }
+.tbtn {
+  border: 1px solid #5d6b4d; background: var(--panel-2); color: #e8ebdb; border-radius: 3px;
+  padding: 6px 10px; font-size: 14px; font-weight: 700; min-height: 36px; white-space: nowrap;
+}
+.tbtn:hover { border-color: var(--lime); }
+.tbtn[aria-pressed="true"] { background: var(--lime); color: var(--dark); border-color: var(--lime); }
+.tbtn.play { min-width: 110px; }
+
+/* Indicadores */
+.kpis {
+  display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0; margin: 0;
+  background: var(--paper); border-bottom: 1px solid var(--rule);
+}
+.kpi { padding: 12px clamp(12px, 1.6vw, 22px); border-right: 1px solid var(--rule); display: grid; gap: 2px; align-content: start; }
+.kpi:last-child { border-right: 0; }
+.kpi dt { font-size: 13px; color: var(--muted); line-height: 1.25; }
+.kpi dd { margin: 0; font-size: clamp(22px, 2.1vw, 32px); font-weight: 650; letter-spacing: -.025em; line-height: 1.05; font-variant-numeric: tabular-nums; }
+.kpi dd small { font-size: 14px; font-weight: 600; letter-spacing: 0; color: var(--muted); }
+
+/* Alerta */
+.alert {
+  display: flex; gap: 12px; align-items: baseline; padding: 10px clamp(14px, 2.4vw, 32px);
+  background: #f3d9c9; border-bottom: 1px solid #d9a88e; color: #4b1f12; font-size: 15px;
+}
+.alert strong { white-space: nowrap; }
+.alert.warn { background: #f4e5c3; border-color: #d8bd7b; color: #47360c; }
+
+/* Disposición principal */
+.layout { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(320px, .9fr); }
+.floor { background: var(--panel); color: var(--paper); padding: 14px clamp(12px, 2vw, 26px) 18px; display: grid; gap: 12px; align-content: start; min-width: 0; }
+.floor-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.floor-head h2 { font-size: 22px; font-weight: 650; letter-spacing: -.02em; }
+.floor-head p { color: #c5c9b7; font-size: 14px; }
+
+/* Vista 3D */
+.viewport {
+  position: relative; height: clamp(380px, 64vh, 680px); border: 1px solid #4c5747; border-radius: 3px;
+  background: #1b2118; overflow: hidden; isolation: isolate; touch-action: none;
+}
+.viewport canvas { display: block; width: 100%; height: 100%; }
+.labels { position: absolute; inset: 0; pointer-events: none; z-index: 1; }
+.lbl {
+  font: 700 13px/1.15 var(--sans); color: #f1f3e6; background: #1b2118d9; border: 1px solid #5d6b4d;
+  padding: 4px 8px 5px; border-radius: 3px; white-space: nowrap; pointer-events: none;
+}
+.lbl small { display: block; font-size: 10.5px; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; color: #c9d48f; margin-top: 2px; }
+.lbl .cnt { display: block; color: var(--lime); font-size: 11.5px; font-weight: 700; }
+.lbl .cnt:empty { display: none; }
+.lbl.zone { text-align: center; }
+.lbl .clim { display: block; margin-top: 4px; padding: 2px 6px; border-radius: 2px; background: #e7ead7; color: var(--ink); font-size: 12.5px; }
+.lbl .clim.meh { background: #f3e8cb; }
+.lbl .clim.bad { background: #d4654a; color: #fff; }
+.lbl.sel { border-color: var(--lime); box-shadow: 0 0 0 1px var(--lime); }
+.lbl.out { background: #f4f2e7e6; color: var(--ink); border-color: #a3ad83; }
+.lbl.out small { color: #576646; }
+.views { position: absolute; z-index: 3; top: 10px; left: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
+.vbtn, .hbtn, .hchip {
+  border: 1px solid #5d6b4d; background: #1f291ee6; color: #e8ebdb; border-radius: 3px;
+  padding: 5px 10px; font-size: 13px; font-weight: 700; min-height: 32px; white-space: nowrap;
+}
+.vbtn:hover, .hbtn:hover, .hchip:hover { border-color: var(--lime); }
+.vbtn[aria-pressed="true"], .hbtn[aria-pressed="true"] { background: var(--lime); color: var(--dark); border-color: var(--lime); }
+.webgl-fallback { position: absolute; inset: 0; display: grid; place-content: center; padding: 24px; text-align: center; color: #d9ddca; z-index: 4; }
+.hint { position: absolute; z-index: 2; right: 10px; bottom: 8px; font-size: 12px; color: #aab497; pointer-events: none; }
+
+/* Modos: recorrido del proceso y simulación */
+body.mode-tour .sim-only, body.mode-sim .tour-only { display: none !important; }
+.modes { display: inline-flex; border: 1px solid #5d6b4d; border-radius: 3px; overflow: hidden; }
+.mode-btn { border: 0; background: #1f291ee6; color: #e8ebdb; padding: 5px 11px; font-size: 13px; font-weight: 700; min-height: 32px; white-space: nowrap; }
+.mode-btn + .mode-btn { border-left: 1px solid #5d6b4d; }
+.mode-btn:hover { color: var(--lime); }
+.mode-btn[aria-pressed="true"] { background: var(--lime); color: var(--dark); }
+.hud-sim { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.tour-play { min-width: 176px; }
+.tour-time { display: inline-grid; place-items: center; min-height: 32px; padding: 4px 10px; background: #1f291ee6; border: 1px solid #5d6b4d; border-radius: 3px; color: var(--lime); font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tsteps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; }
+.tstep { width: 100%; min-width: 0; text-align: left; display: grid; gap: 1px; padding: 5px 8px 6px; border: 1px solid #5d6b4d; border-top: 3px solid #5d6b4d; border-radius: 3px; background: #1f291ee6; color: #e0e2d3; font-size: 13px; font-weight: 700; line-height: 1.1; }
+.tstep span { font-size: 11px; color: #aab497; font-variant-numeric: tabular-nums; }
+.tstep:hover { border-color: var(--lime); }
+.tstep.done { border-top-color: #8aa05a; }
+.tstep[aria-current="step"] { border-color: var(--lime); background: #37412c; color: var(--lime); }
+.tstep[aria-current="step"] span { color: var(--lime); }
+.tour-bar { position: absolute; z-index: 3; left: 10px; right: 10px; bottom: 10px; }
+.tour-panel { display: flex; gap: 10px; align-items: stretch; }
+.tour-panel .tsteps { flex: 1; }
+.lbl.demo { background: var(--lime); color: var(--dark); border-color: var(--lime); font-size: 12px; padding: 3px 7px; }
+.zone-line { color: var(--lime); font-weight: 700; }
+.floor-head .modes { align-self: center; }
+
+/* HUD (solo en la diapositiva) */
+.hud { display: none; }
+body.embed .hud { display: block; }
+.hud-top { position: absolute; z-index: 3; top: 10px; left: 10px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; max-width: calc(100% - 180px); }
+.hud-clock { display: grid; line-height: 1.1; padding: 3px 10px 4px; background: #1f291ee6; border: 1px solid #5d6b4d; border-radius: 3px; margin-right: 4px; }
+.hud-clock strong { color: var(--lime); font-size: 16px; }
+.hud-clock span { color: #c9cebb; font-size: 12px; }
+.hbtn.play { min-width: 96px; }
+.hud-open { position: absolute; z-index: 3; top: 10px; right: 10px; font-size: 13px; font-weight: 700; color: var(--lime); background: #1f291ee6; border: 1px solid #5d6b4d; border-radius: 3px; padding: 6px 10px; text-decoration: none; }
+.hud-open:hover { border-color: var(--lime); }
+body.embed .views { top: 52px; left: auto; right: 10px; flex-direction: column; align-items: stretch; }
+.hud-alert { position: absolute; z-index: 3; top: 58px; left: 10px; max-width: min(560px, calc(100% - 150px)); padding: 7px 11px; border-radius: 3px; font-size: 13.5px; line-height: 1.3; background: #f3d9c9; color: #4b1f12; border: 1px solid #d9a88e; }
+.hud-alert.warn { background: #f4e5c3; color: #47360c; border-color: #d8bd7b; }
+.hud-zone { position: absolute; z-index: 3; left: 10px; bottom: 74px; width: min(310px, 38%); background: #1b2118e8; border: 1px solid #5d6b4d; border-radius: 3px; padding: 9px 12px 10px; color: #d9ddca; font-size: 13px; line-height: 1.35; }
+.hud-zone h3 { font-size: 16px; color: #f1f3e6; margin: 1px 0 3px; }
+.hud-zone p { font-size: 12.5px; }
+.hud-zone .kicker { font-size: 11px; }
+.hud-zone p + p { margin-top: 4px; }
+.hud-zone strong { color: #eef1e2; }
+.hud-bottom { position: absolute; z-index: 3; left: 10px; right: 10px; bottom: 10px; display: flex; justify-content: space-between; align-items: flex-end; gap: 8px; flex-wrap: wrap; pointer-events: none; }
+.hud-bottom > * { pointer-events: auto; }
+.hud-kpis { display: flex; gap: 6px; margin: 0; flex-wrap: wrap; }
+.hud-kpis div { background: #f4f2e7f0; color: var(--ink); border-radius: 3px; padding: 3px 10px 4px; min-width: 104px; }
+.hud-kpis dt { font-size: 11px; color: var(--muted); line-height: 1.2; }
+.hud-kpis dd { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.hud-scen { display: flex; gap: 5px; flex-wrap: wrap; justify-content: flex-end; align-items: center; }
+.hchip { display: inline-flex; align-items: center; gap: 6px; padding-inline: 8px; }
+.hchip::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: #7d8471; }
+.hchip[aria-pressed="true"]::before { background: var(--lime); box-shadow: 0 0 6px var(--lime); }
+.hchip.risk[aria-pressed="true"]::before { background: var(--alert); box-shadow: 0 0 6px var(--alert); }
+.hsep { width: 1px; height: 24px; background: #5d6b4d; margin: 0 3px; }
+body.embed { background: var(--dark); overflow: hidden; }
+body.embed .topbar, body.embed .kpis, body.embed .alert, body.embed .side,
+body.embed .floor-head, body.embed .legend, body.embed .zone-info, body.embed .floor-cards, body.embed .hint { display: none !important; }
+body.embed .layout { display: block; }
+body.embed .floor { padding: 0; display: block; }
+body.embed .viewport { height: 100vh; border: 0; border-radius: 0; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: #d4d9c4; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
+
+.zone-info { border-top: 1px solid #4c5747; padding-top: 12px; display: grid; grid-template-columns: 1.1fr .9fr; gap: 18px; }
+.zone-info h3 { font-size: 22px; font-weight: 650; letter-spacing: -.02em; margin: 4px 0 6px; color: #f1f3e6; }
+.zone-info p { color: #c9cebb; font-size: 15px; }
+.zone-info p + p { margin-top: 6px; }
+.zone-info strong { color: #eef1e2; }
+.zone-now { background: #1b2418; border: 1px solid #3f4c38; padding: 10px 12px; border-radius: 3px; font-size: 14px; color: #d9ddca; }
+.zone-now ul { margin: 6px 0 0; padding-left: 18px; }
+
+.floor-cards { display: grid; grid-template-columns: .9fr 1.1fr; gap: 22px; border-top: 1px solid #4c5747; padding-top: 12px; }
+.fcard h2 { font-size: 19px; font-weight: 650; letter-spacing: -.015em; margin: 2px 0 10px; color: #f1f3e6; }
+.flows { display: grid; gap: 6px; }
+.flow-bar { display: flex; height: 16px; background: #3a4636; overflow: hidden; border-radius: 2px; }
+.flow-bar span { display: block; height: 100%; transition: width .4s; }
+.flow-key { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; font-size: 14px; color: #d9ddca; }
+.flow-key i { display: inline-block; width: 11px; height: 11px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.log { list-style: none; margin: 0; padding: 0; max-height: 260px; overflow: auto; font-size: 14px; }
+.log li { display: grid; grid-template-columns: 92px 1fr; gap: 8px; padding: 5px 0; border-top: 1px solid #3f4c38; color: #d9ddca; }
+.log li:first-child { border-top: 0; }
+.log time { color: #aab497; font-variant-numeric: tabular-nums; font-size: 13px; }
+.log .bad { color: #f2a88f; font-weight: 650; }
+.log .good { color: #cfe39a; }
+
+/* Panel lateral */
+.side { background: var(--paper); border-left: 1px solid var(--rule); display: grid; align-content: start; }
+.card { padding: 14px clamp(14px, 1.6vw, 22px); border-bottom: 1px solid var(--rule); }
+.card h2 { font-size: 19px; font-weight: 650; letter-spacing: -.015em; margin: 2px 0 10px; }
+.sensors { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin: 0; }
+.sensor { background: var(--paper-2); border-top: 3px solid var(--moss); padding: 8px 10px; }
+.sensor.bad { border-color: var(--alert); background: #f2dccf; }
+.sensor.meh { border-color: var(--warn); background: #f3e8cb; }
+.sensor dt { font-size: 12px; color: var(--muted); line-height: 1.2; }
+.sensor dd { margin: 2px 0 0; font-size: 26px; font-weight: 650; letter-spacing: -.02em; font-variant-numeric: tabular-nums; line-height: 1.05; }
+.sensor dd small { font-size: 13px; color: var(--muted); font-weight: 600; }
+.chart { margin-top: 10px; background: #fbfaf3; border: 1px solid var(--rule); }
+.chart svg { display: block; width: 100%; height: auto; }
+.chart-legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); padding: 4px 8px 6px; }
+.chart-legend i { display: inline-block; width: 16px; height: 3px; vertical-align: middle; margin-right: 5px; }
+.toggles { display: grid; gap: 8px; }
+.toggle { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 6px 0; border-top: 1px solid #dcdecd; }
+.toggle:first-child { border-top: 0; }
+.toggle label { font-size: 15px; font-weight: 650; line-height: 1.25; }
+.toggle label small { display: block; font-weight: 400; color: var(--muted); font-size: 13px; }
+.switch { appearance: none; width: 46px; height: 26px; border-radius: 13px; background: #b9bda8; position: relative; flex: none; cursor: pointer; border: 0; transition: background .2s; }
+.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: transform .2s; box-shadow: 0 1px 2px #0004; }
+.switch:checked { background: var(--olive); }
+.switch:checked::after { transform: translateX(20px); }
+.switch.risk:checked { background: var(--alert); }
+.presets { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.preset { border: 1px solid #8a976e; background: #f7f7ea; padding: 6px 10px; border-radius: 3px; font-size: 14px; font-weight: 700; }
+.preset[aria-pressed="true"] { background: var(--dark); color: var(--lime); border-color: var(--dark); }
+.slider { display: grid; gap: 2px; padding: 6px 0; }
+.slider .row { display: flex; justify-content: space-between; gap: 10px; font-size: 15px; font-weight: 650; }
+.slider output { font-variant-numeric: tabular-nums; color: var(--olive); }
+.slider input { width: 100%; accent-color: var(--olive); }
+.slider small { color: var(--muted); font-size: 13px; }
+details.assumptions { padding: 14px clamp(14px, 1.6vw, 22px) 22px; font-size: 14px; color: var(--muted); }
+details.assumptions summary { font-weight: 700; color: var(--ink); cursor: pointer; }
+details.assumptions ul { padding-left: 18px; margin: 8px 0 0; }
+details.assumptions li + li { margin-top: 4px; }
+
+@media (max-width: 1100px) {
+  .layout { grid-template-columns: 1fr; }
+  .side { border-left: 0; grid-template-columns: 1fr 1fr; }
+  .side .card { border-right: 1px solid var(--rule); }
+  .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .kpi:nth-child(3n) { border-right: 0; }
+  .kpi:nth-child(-n+3) { border-bottom: 1px solid var(--rule); }
+}
+@media (max-width: 700px) {
+  .topbar { position: static; }
+  .transport { flex-wrap: wrap; }
+  .viewport { height: 62vh; }
+  .vbtn { font-size: 12px; padding: 4px 8px; min-height: 30px; }
+  .lbl { font-size: 11px; padding: 3px 6px; }
+  .lbl small { font-size: 9px; }
+  .floor-cards { grid-template-columns: 1fr; }
+  .side { grid-template-columns: 1fr; }
+  .side .card { border-right: 0; }
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kpi { border-bottom: 1px solid var(--rule); }
+  .kpi:nth-child(3n) { border-right: 1px solid var(--rule); }
+  .kpi:nth-child(2n) { border-right: 0; }
+  .zone-info { grid-template-columns: 1fr; }
+  .clock { text-align: left; }
+  .title { flex-basis: 100%; }
+}
+@media (max-width: 900px) {
+  body.embed .hud-zone { display: none; }
+  .tsteps { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .tour-panel { flex-direction: column; }
+}
+</style>
+</head>
+<body>
+<header class="topbar dark">
+  <a class="back" href="/">← Presentación</a>
+  <div class="title">
+    <span class="kicker">Gemelo digital 3D · Simulación ilustrativa</span>
+    <h1>Planta piloto MiceliAIP</h1>
+  </div>
+  <div class="clock"><strong id="clock-day" class="num">Día 1</strong><span id="clock-time" class="num">Lunes 07:00</span></div>
+  <div class="transport" role="group" aria-label="Control de la simulación">
+    <button class="tbtn play" id="play" type="button" aria-pressed="false">▶ Iniciar</button>
+    <button class="tbtn speed" type="button" data-speed="2" aria-pressed="false" title="2 horas simuladas por segundo">2 h/s</button>
+    <button class="tbtn speed" type="button" data-speed="12" aria-pressed="true" title="12 horas simuladas por segundo">12 h/s</button>
+    <button class="tbtn speed" type="button" data-speed="48" aria-pressed="false" title="2 días simulados por segundo">2 d/s</button>
+    <button class="tbtn speed" type="button" data-speed="168" aria-pressed="false" title="1 semana simulada por segundo">1 sem/s</button>
+    <button class="tbtn" id="reset" type="button">Reiniciar</button>
+  </div>
+</header>
+
+<dl class="kpis" aria-label="Indicadores acumulados">
+  <div class="kpi"><dt>Poda que no fue al relleno</dt><dd id="k-diverted">0 <small>kg</small></dd></div>
+  <div class="kpi"><dt>Poda convertida en embalaje</dt><dd id="k-micelio">0 <small>kg</small></dd></div>
+  <div class="kpi"><dt>Piezas aprobadas</dt><dd id="k-good">0</dd></div>
+  <div class="kpi"><dt>Piezas al compost</dt><dd id="k-bad">0</dd></div>
+  <div class="kpi"><dt>Ahorro estimado en flete y relleno</dt><dd id="k-savings">$0</dd></div>
+  <div class="kpi"><dt>Energía usada (del parque)</dt><dd id="k-energy">0 <small>kWh</small></dd></div>
+</dl>
+
+<div class="alert" id="alert" role="status" hidden></div>
+
+<main class="layout">
+  <section class="floor dark" aria-labelledby="floor-title">
+    <div class="floor-head">
+      <div>
+        <span class="kicker">Gemelo digital 3D · Planta de 8 × 6 m</span>
+        <h2 id="floor-title">Así se mueven los lotes</h2>
+      </div>
+      <p>Arrastrá para girar, usá la rueda para acercar y tocá una zona.</p>
+      <div class="modes" role="group" aria-label="Modo de la vista">
+        <button class="mode-btn" type="button" data-mode="tour" aria-pressed="true">Recorrido del proceso</button>
+        <button class="mode-btn" type="button" data-mode="sim" aria-pressed="false">Simulación</button>
+      </div>
+    </div>
+    <div class="viewport" id="viewport">
+      <div class="views" role="group" aria-label="Vistas de la cámara">
+        <button class="vbtn" type="button" data-view="general" aria-pressed="true">General</button>
+        <button class="vbtn" type="button" data-view="recepcion" aria-pressed="false">Recepción</button>
+        <button class="vbtn" type="button" data-view="incubacion" aria-pressed="false">Incubación</button>
+        <button class="vbtn" type="button" data-view="despacho" aria-pressed="false">Despacho</button>
+      </div>
+      <div class="hud" id="hud">
+        <div class="hud-top">
+          <div class="modes" role="group" aria-label="Modo de la vista">
+            <button class="mode-btn" type="button" data-mode="tour" aria-pressed="true">Recorrido del proceso</button>
+            <button class="mode-btn" type="button" data-mode="sim" aria-pressed="false">Simulación</button>
+          </div>
+          <button class="hbtn tour-play tour-only" type="button" aria-pressed="false">▶ Reproducir proceso</button>
+          <span class="tour-time tour-only num" aria-label="Tiempo del recorrido">0:00 / 1:00</span>
+          <div class="hud-sim sim-only" role="group" aria-label="Control de la simulación">
+            <div class="hud-clock"><strong id="h-day" class="num">Día 1</strong><span id="h-time" class="num">Lunes 07:00</span></div>
+            <button class="hbtn play" id="h-play" type="button" aria-pressed="false">▶ Iniciar</button>
+            <button class="hbtn hspeed" type="button" data-speed="12" aria-pressed="true">12 h/s</button>
+            <button class="hbtn hspeed" type="button" data-speed="48" aria-pressed="false">2 d/s</button>
+            <button class="hbtn hspeed" type="button" data-speed="168" aria-pressed="false">1 sem/s</button>
+            <button class="hbtn" id="h-reset" type="button">Reiniciar</button>
+          </div>
+        </div>
+        <a class="hud-open" href="/gemelo" target="_blank" rel="noopener">Abrir completo ↗</a>
+        <div class="hud-alert sim-only" id="h-alert" role="status" hidden></div>
+        <div class="hud-zone" id="h-zone"></div>
+        <div class="hud-bottom sim-only">
+          <dl class="hud-kpis">
+            <div><dt>Poda fuera del relleno</dt><dd id="hk-div">0 kg</dd></div>
+            <div><dt>Piezas aprobadas</dt><dd id="hk-good">0</dd></div>
+            <div><dt>Ahorro estimado</dt><dd id="hk-sav">$0</dd></div>
+          </dl>
+          <div class="hud-scen" role="group" aria-label="Escenarios">
+            <button class="hchip" type="button" data-key="ac" aria-pressed="true">Aire acond.</button>
+            <button class="hchip" type="button" data-key="hum" aria-pressed="true">Humidificador</button>
+            <button class="hchip" type="button" data-key="past" aria-pressed="true">Pasteurización</button>
+            <button class="hchip risk" type="button" data-key="herb" aria-pressed="false">Herbicidas</button>
+            <button class="hchip" type="button" data-key="comp" aria-pressed="false">Compost</button>
+            <span class="hsep" aria-hidden="true"></span>
+            <button class="hbtn hscale" type="button" data-molds="40" aria-pressed="true">Piloto</button>
+            <button class="hbtn hscale" type="button" data-molds="3300" aria-pressed="false">Planta</button>
+          </div>
+        </div>
+        <ol class="tsteps tour-bar tour-only" aria-label="Etapas del proceso"></ol>
+      </div>
+      <p class="webgl-fallback" id="webgl-fallback" hidden>Este navegador no pudo abrir la vista 3D (WebGL). Los indicadores y la bitácora siguen funcionando.</p>
+      <p class="hint">Arrastrá para girar · rueda para acercar</p>
+    </div>
+    <div class="tour-panel tour-only">
+      <button class="tbtn tour-play" type="button" aria-pressed="false">▶ Reproducir proceso</button>
+      <span class="tour-time num" aria-label="Tiempo del recorrido">0:00 / 1:00</span>
+      <ol class="tsteps" aria-label="Etapas del proceso"></ol>
+    </div>
+    <div class="legend" aria-label="Leyenda">
+      <span><i style="background:#a07a4c"></i>Poda en preparación</span>
+      <span><i style="background:linear-gradient(90deg,#8b6a43,#efe6c8)"></i>Micelio creciendo</span>
+      <span><i style="background:#5b7f3a;outline:2px solid #d4654a"></i>Lote con moho</span>
+      <span><i style="background:#efe6c8"></i>Pieza lista</span>
+    </div>
+    <div class="zone-info" id="zone-info"></div>
+    <div class="floor-cards">
+      <section class="fcard" aria-labelledby="flow-title">
+        <span class="kicker">Destino de la poda</span>
+        <h2 id="flow-title">¿A dónde va cada kilo?</h2>
+        <div class="flows">
+          <div class="flow-bar" aria-hidden="true"><span id="f-mic" style="background:#d9eb83;width:0"></span><span id="f-comp" style="background:#72925b;width:0"></span><span id="f-rel" style="background:#8f8a7a;width:0"></span><span id="f-pile" style="background:#c59d65;width:0"></span></div>
+          <div class="flow-key">
+            <span><i style="background:#d9eb83"></i>Embalaje de micelio</span><span id="fk-mic" class="num">0 kg</span>
+            <span><i style="background:#72925b"></i>Compost en el parque</span><span id="fk-comp" class="num">0 kg</span>
+            <span><i style="background:#8f8a7a"></i>Relleno de Metapán</span><span id="fk-rel" class="num">0 kg</span>
+            <span><i style="background:#c59d65"></i>En acopio ahora</span><span id="fk-pile" class="num">0 kg</span>
+          </div>
+        </div>
+      </section>
+      <section class="fcard" aria-labelledby="log-title">
+        <span class="kicker">Bitácora</span>
+        <h2 id="log-title">Lo que va pasando</h2>
+        <ol class="log" id="log"></ol>
+      </section>
+    </div>
+  </section>
+
+  <aside class="side">
+    <section class="card" aria-labelledby="sensors-title">
+      <span class="kicker">Sensores · Cuarto de incubación</span>
+      <h2 id="sensors-title">Clima del cuarto</h2>
+      <dl class="sensors">
+        <div class="sensor" id="s-temp"><dt>Temperatura</dt><dd><span id="v-temp">25.0</span> <small>°C</small></dd></div>
+        <div class="sensor" id="s-hum"><dt>Humedad</dt><dd><span id="v-hum">85</span> <small>%</small></dd></div>
+        <div class="sensor" id="s-amb"><dt>Afuera (Ciudad Arce)</dt><dd><span id="v-amb">25.0</span> <small>°C</small></dd></div>
+      </dl>
+      <div class="chart">
+        <svg id="chart" viewBox="0 0 360 130" role="img" aria-label="Temperatura y humedad de las últimas 72 horas"></svg>
+        <div class="chart-legend"><span><i style="background:#c2532f"></i>Cuarto °C</span><span><i style="background:#b9a77a"></i>Afuera °C</span><span><i style="background:#3f7fa3"></i>Humedad %</span><span>Últimas 72 h · banda verde: 24–28 °C</span></div>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="scen-title">
+      <span class="kicker">Escenarios · Plan B</span>
+      <h2 id="scen-title">¿Qué pasa si…?</h2>
+      <div class="toggles">
+        <div class="toggle"><label for="t-ac">Aire acondicionado<small>Apagalo para simular una falla</small></label><input class="switch" type="checkbox" id="t-ac" data-key="ac" checked></div>
+        <div class="toggle"><label for="t-hum">Humidificador<small>Mantiene la humedad alta</small></label><input class="switch" type="checkbox" id="t-hum" data-key="hum" checked></div>
+        <div class="toggle"><label for="t-past">Pasteurización correcta<small>60–80 °C antes de inocular</small></label><input class="switch" type="checkbox" id="t-past" data-key="past" checked></div>
+        <div class="toggle"><label for="t-herb">Grama con herbicidas<small>El hongo crece más lento</small></label><input class="switch risk" type="checkbox" id="t-herb" data-key="herb"></div>
+        <div class="toggle"><label for="t-comp">Compostar el excedente<small>Mandar al compost del parque la poda que no entra al piloto</small></label><input class="switch" type="checkbox" id="t-comp" data-key="comp"></div>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="param-title">
+      <span class="kicker">Parámetros</span>
+      <h2 id="param-title">Tamaño de la operación</h2>
+      <div class="presets" role="group" aria-label="Escenario de escala">
+        <button class="preset" type="button" data-molds="40" aria-pressed="true">Piloto · 40 moldes</button>
+        <button class="preset" type="button" data-molds="3300" aria-pressed="false">Planta · 3,300 moldes</button>
+      </div>
+      <div class="slider">
+        <div class="row"><label for="p-molds">Moldes en uso</label><output id="o-molds" for="p-molds">40</output></div>
+        <input type="range" id="p-molds" min="20" max="4000" step="10" value="40">
+      </div>
+      <div class="slider">
+        <div class="row"><label for="p-tons">Poda generada al mes</label><output id="o-tons" for="p-tons">42 t</output></div>
+        <input type="range" id="p-tons" min="5" max="60" step="1" value="42">
+        <small>42 t = 14 viajes de 3 t, como en el simulador de costos.</small>
+      </div>
+      <div class="slider">
+        <div class="row"><label for="p-days">Incubación objetivo</label><output id="o-days" for="p-days">18 días</output></div>
+        <input type="range" id="p-days" min="14" max="21" step="1" value="18">
+      </div>
+      <div class="slider">
+        <div class="row"><label for="p-set">Consigna del aire</label><output id="o-set" for="p-set">26 °C</output></div>
+        <input type="range" id="p-set" min="22" max="30" step="1" value="26">
+      </div>
+    </section>
+
+    <details class="assumptions">
+      <summary>Supuestos de la simulación</summary>
+      <ul>
+        <li>Es un modelo ilustrativo para explicar el proceso. Los números son referenciales y se validarán en el piloto.</li>
+        <li>Espacio de 8 × 6 m (48 m²) por confirmar con Aristos. Cada pieza usa unos 2 kg de poda fresca.</li>
+        <li>Jornada de lunes a sábado de 07:00 a 16:00 para separar, triturar, inocular, ensayar y empacar. El tratamiento térmico, la incubación y el secado siguen de noche.</li>
+        <li>Duración por lote: separar 2 h, triturar 1 h, tratamiento térmico y enfriado 8 h, inocular 2 h, incubación de 14 a 21 días, desmolde y secado 24 h, ensayo 2 h y empaque 1 h.</li>
+        <li>Temperatura exterior de Ciudad Arce simulada entre unos 22 y 32 °C. Sin aire acondicionado, el cuarto cerrado queda un poco más caliente que afuera.</li>
+        <li>El micelio crece mejor entre 24 y 28 °C. Arriba de 30 °C crece más lento y sube el riesgo de moho; la humedad baja también lo frena.</li>
+        <li>Se aprueba cerca del 90 % de las piezas sanas (75 % con herbicidas). Las rechazadas y los lotes con moho van al compost.</li>
+        <li>El ahorro usa $85–115 por tonelada que deja de ir al relleno (flete de $150–200 por viaje de 2.5–3 t y $35 por tonelada).</li>
+        <li>Energía: un aire acondicionado de 1.2 kW por cada 400 moldes, que trabaja más en las horas de calor, y un horno de unos 2 kW que en promedio consume 1 kW por cada 40 piezas que se secan.</li>
+        <li>El modelo 3D es esquemático: muestra la distribución de zonas y equipos, no un plano constructivo.</li>
+      </ul>
+    </details>
+  </aside>
+</main>
+
+<script type="module">
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/OrbitControls.js";
+import { CSS2DRenderer, CSS2DObject } from "three/addons/CSS2DRenderer.js";
+
+const $ = (id) => document.getElementById(id);
+const $$ = (sel) => [...document.querySelectorAll(sel)];
+const EMBED = new URLSearchParams(location.search).has("embed");
+if (EMBED) document.body.classList.add("embed");
+const fmt = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
+const fmt1 = new Intl.NumberFormat("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+const KG_PER_PIECE = 2;
+
+// =====================================================================
+// Proceso y zonas (mismo proceso de la presentación)
+// =====================================================================
+const STAGES = [
+  { short: "Separar", title: "Separar la poda", zone: 0, hours: 2, work: true },
+  { short: "Triturar", title: "Triturar y clasificar", zone: 0, hours: 1, work: true },
+  { short: "Tratar", title: "Acondicionar con calor", zone: 1, hours: 8, work: false },
+  { short: "Inocular", title: "Inocular y llenar el molde", zone: 2, hours: 2, work: true },
+  { short: "Incubar", title: "Dejar crecer la red", zone: 3, hours: null, work: false },
+  { short: "Secar", title: "Desmoldar y secar", zone: 4, hours: 24, work: false },
+  { short: "Ensayar", title: "Comparar con durapax", zone: 5, hours: 2, work: true },
+  { short: "Empacar", title: "Proteger un envío", zone: 5, hours: 1, work: true }
+];
+// Coordenadas en metros dentro del espacio de 8 × 6 m (x hacia el este, z hacia el sur)
+const ZONES = [
+  { id: 0, name: "Recepción y trituración", label: "Recepción y<br>trituración", tag: "Zona sucia", x: 0, z: 0, w: 3, d: 2.5, floor: "#c9b796",
+    what: "Se recibe la poda, se separan ramas y hojas limpias y se retira plástico, piedras y material con tratamiento químico desconocido. Luego se chipea y se tamiza.",
+    eq: "Mesa de separación, recipientes por tipo y trituradora compacta.",
+    check: "Pesar y etiquetar por origen y fecha. Registrar tamaño de partícula." },
+  { id: 1, name: "Tratamiento térmico", label: "Tratamiento<br>térmico", tag: "Zona sucia", x: 3, z: 0, w: 2, d: 2.5, floor: "#c8b08f",
+    what: "Se ajusta la humedad y se calienta el sustrato para reducir los microbios que compiten con el hongo. Después se deja enfriar antes de inocular.",
+    eq: "Gabinete térmico o tanque con agua caliente, bandejas y carro.",
+    check: "Registrar humedad, temperatura y tiempo de cada lote." },
+  { id: 2, name: "Moldeo", label: "Moldeo<br>(zona limpia)", tag: "Zona limpia", x: 5, z: 0, w: 3, d: 2.5, floor: "#bccdb0",
+    what: "Se mezcla el sustrato frío con la semilla de hongo ostra y se llenan los moldes reutilizables con una cantidad uniforme.",
+    eq: "Mesa lavable de acero, moldes, alcohol y cortina plástica que la separa de la zona sucia.",
+    check: "Etiquetar formulación, molde y lote de semilla." },
+  { id: 3, name: "Cuarto de incubación", label: "Cuarto de<br>incubación", tag: "Oscuro y fresco", x: 0, z: 3.2, w: 4.4, d: 2.8, floor: "#a4b9a0",
+    what: "Las hifas crecen entre las partículas y amarran la pieza dentro del molde. Necesita oscuridad, unos 24–28 °C y humedad alta. No puede ser un invernadero.",
+    eq: "Cuarto aislado con estantes, aire acondicionado, humidificador, termómetro e higrómetro.",
+    check: "Revisar temperatura, humedad, avance de la colonización y señales de moho." },
+  { id: 4, name: "Desmolde y secado", label: "Desmolde<br>y secado", tag: "Calor", x: 4.4, z: 3.2, w: 1.9, d: 2.8, floor: "#c9b394",
+    what: "Se saca la pieza cuando conserva su forma y se seca con calor para detener el hongo. Ya seca, es un material inerte.",
+    eq: "Mesa de desmolde y horno de bandejas.",
+    check: "Medir masa final y revisar grietas, contracción y deformación." },
+  { id: 5, name: "Calidad y despacho", label: "Calidad y<br>despacho", tag: "Salida", x: 6.3, z: 3.2, w: 1.7, d: 2.8, floor: "#c4cba8",
+    what: "Se mide densidad y compresión y se compara con el durapax en una prueba de caída. Las piezas aprobadas se empacan para el cliente.",
+    eq: "Banco de ensayo, balanza y estante de pedidos.",
+    check: "Aceptar solo piezas que cumplan el criterio acordado y registrar rechazos." }
+];
+
+// Textos del recorrido: los mismos de la diapositiva "Así se fabrica una pieza"
+const PHASES = [
+  { group: "Preparación", short: "Separar", title: "Separar la poda", zone: "Recepción y trituración",
+    description: "Recolectar ramas y hojas limpias. Retirar plástico, piedras y material con tratamiento químico desconocido.",
+    check: "Pesar y etiquetar por origen y fecha.",
+    space: "Una mesa próxima a la entrada y recipientes separados para ramas, hojas y material descartado." },
+  { group: "Preparación", short: "Triturar", title: "Triturar y clasificar", zone: "Recepción y trituración",
+    description: "Chipear las ramas y tamizar la mezcla. Un tamaño más uniforme ayuda a llenar el molde de forma repetible.",
+    check: "Registrar granulometría, masa y proporción de cada fracción.",
+    space: "Trituradora compacta junto al acopio. La poda chipeada se recoge en un recipiente para llevarla a tratamiento." },
+  { group: "Preparación", short: "Tratar", title: "Acondicionar con calor", zone: "Tratamiento térmico",
+    description: "Ajustar la humedad y aplicar un tratamiento térmico para reducir la competencia microbiana. Enfriar el sustrato antes de inocular.",
+    check: "Validar y registrar humedad, temperatura y tiempo por lote.",
+    space: "Gabinete térmico cerrado, bandejas y un carro para llevar el sustrato acondicionado hacia el área limpia." },
+  { group: "Moldeo", short: "Inocular", title: "Inocular y llenar el molde", zone: "Moldeo en zona limpia",
+    description: "En el área limpia, mezclar el sustrato frío con inóculo de hongo ostra. Llenar moldes reutilizables con una cantidad uniforme.",
+    check: "Etiquetar formulación, molde y lote de inóculo.",
+    space: "Mesa lavable de acero, moldes reutilizables y bandejas etiquetadas en un área separada de la entrada de poda." },
+  { group: "Crecimiento", short: "Incubar", title: "Dejar crecer la red", zone: "Incubación",
+    description: "Durante la incubación, las hifas cruzan los huecos, envuelven las fibras y consolidan la pieza. El borrador estima unas 2–3 semanas, por validar.",
+    check: "Registrar temperatura y humedad. Revisar colonización y señales de moho.",
+    space: "Estanterías con bandejas identificadas por lote en un espacio con temperatura y humedad controladas." },
+  { group: "Acabado", short: "Secar", title: "Desmoldar y secar", zone: "Desmolde y secado",
+    description: "Retirar la pieza cuando conserve su forma. Secar con calor para detener el crecimiento y disminuir la humedad antes del empaque.",
+    check: "Medir masa final y revisar contracción, grietas y deformación.",
+    space: "Mesa de desmolde, horno de bandejas y un área seca para dejar enfriar las piezas antes del control." },
+  { group: "Validación", short: "Ensayar", title: "Comparar con durapax", zone: "Calidad y despacho",
+    description: "Medir densidad, compresión y absorción de agua. Comparar ambas alternativas en una caída con la misma caja y la misma carga.",
+    check: "Aceptar solo piezas que cumplan el criterio acordado. Segregar y documentar rechazos.",
+    space: "Banco de ensayo para pesar y medir las piezas y evaluar su resistencia. Las piezas aprobadas pasan a empaque." },
+  { group: "Entrega", short: "Empacar", title: "Proteger un envío", zone: "Calidad y despacho",
+    description: "Colocar un inserto a cada extremo del producto y cerrar la caja. Mantener las piezas secas hasta su uso.",
+    check: "Vincular el lote al cliente y registrar piezas usadas, daños y destino final.",
+    space: "Mesa con cajas, insertos secos y un estante para los pedidos listos para despacho." }
+];
+
+// =====================================================================
+// Simulación (1 paso = 1 hora simulada)
+// =====================================================================
+let S;
+function freshState() {
+  return {
+    t: 7, lots: [], nextId: 1, exits: [],
+    pile: 0, kgMicelio: 0, kgCompost: 0, kgRelleno: 0,
+    good: 0, bad: 0, energy: 0,
+    roomT: 25.5, roomH: 85, ambT: 24, hotHours: 0,
+    history: [], log: [], lastStart: -99, alerts: { dry: false }
+  };
+}
+const P = { molds: 40, tons: 42, days: 18, set: 26, ac: true, hum: true, past: true, herb: false, comp: false };
+let speed = 12, running = false, acc = 0;
+let logDirty = true;
+
+const lotSize = () => Math.max(4, Math.ceil(P.molds / 30));
+const capacity = () => Math.max(1, Math.floor(P.molds / lotSize()));
+const ambient = (t) => {
+  const h = t % 24, day = Math.floor(t / 24);
+  return 27 + Math.sin(day * 1.7) * 0.8 + 5 * Math.sin((2 * Math.PI * (h - 9)) / 24);
+};
+const isWorkHour = (t) => {
+  const h = t % 24, dow = Math.floor(t / 24) % 7;
+  return dow < 6 && h >= 7 && h < 16;
+};
+const stamp = (t) => "D" + (Math.floor(t / 24) + 1) + " · " + String(Math.floor(t % 24)).padStart(2, "0") + ":00";
+function log(text, kind = "") {
+  S.log.unshift({ t: S.t, text, kind });
+  if (S.log.length > 60) S.log.pop();
+  logDirty = true;
+}
+function growthFactor(T, H) {
+  let f = 1;
+  if (T < 24) f -= 0.07 * (24 - T);
+  if (T > 28) f -= 0.15 * (T - 28);
+  if (H < 75) f -= 0.02 * (75 - H);
+  if (P.herb) f *= 0.6;
+  return Math.max(0.12, f);
+}
+function moldRisk(T, H) {
+  let r = 0.05 / (18 * 24); // ~5 % por ciclo en buenas condiciones
+  if (T > 29) r *= Math.exp(0.75 * (T - 29));
+  if (H < 75) r *= 2;
+  if (!P.past) r *= 4;
+  return r;
+}
+function freeSlot() {
+  const used = new Set(S.lots.filter((l) => l.stage === 4 && !l.gone).map((l) => l.slot));
+  for (let i = 0; i < capacity(); i++) if (!used.has(i)) return i;
+  return 0;
+}
+function step() {
+  const t = S.t;
+  S.ambT = ambient(t);
+  const incubating = S.lots.filter((l) => l.stage === 4 && !l.gone).length;
+  const metabolic = 0.4 + 0.05 * incubating * lotSize() / 10;
+  const acUnits = Math.max(1, Math.ceil(P.molds / 400));
+  const targetT = P.ac ? Math.max(P.set, S.ambT - 10) + Math.min(metabolic, 1.2) * 0.3 : S.ambT + 1.5 + Math.min(metabolic, 2);
+  S.roomT += (targetT - S.roomT) * (P.ac ? 0.45 : 0.25) + (Math.random() - 0.5) * 0.15;
+  S.roomH += ((P.hum ? 86 : 64) - S.roomH) * 0.25 + (Math.random() - 0.5) * 1.2;
+  S.roomH = Math.min(98, Math.max(40, S.roomH));
+  if (P.ac) S.energy += 1.2 * acUnits * Math.min(1, Math.max(0.25, (S.ambT - P.set + 4) / 10));
+  S.pile += (P.tons * 1000) / 30 / 24;
+
+  for (const lot of S.lots) {
+    if (lot.gone) continue;
+    const st = STAGES[lot.stage];
+    if (lot.stage === 4) {
+      lot.col = Math.min(1, lot.col + growthFactor(S.roomT, S.roomH) / (P.days * 24));
+      if (!lot.moldy && Math.random() < moldRisk(S.roomT, S.roomH)) {
+        lot.moldy = true;
+        log("Moho detectado en " + lot.name + (S.roomT > 29 ? " (cuarto a " + fmt1.format(S.roomT) + " °C)" : !P.past ? " (pasteurización deficiente)" : "") + ". Se retira al compost.", "bad");
+      }
+      if (lot.moldy || lot.col >= 1) lot.left = 0;
+      continue;
+    }
+    if (st.work && !isWorkHour(t)) continue;
+    lot.left -= 1;
+  }
+  const drying = S.lots.filter((l) => l.stage === 5 && !l.gone).reduce((a, l) => a + l.molds, 0);
+  if (drying > 0) S.energy += Math.ceil(drying / 40);
+
+  for (const lot of S.lots) {
+    if (lot.left > 0 || lot.gone) continue;
+    if (lot.moldy) {
+      S.bad += lot.molds; S.kgCompost += lot.kg; lot.gone = "compost";
+      S.exits.push({ id: lot.id, kind: "compost" });
+      continue;
+    }
+    if (lot.stage === 6) {
+      const passRate = P.herb ? 0.75 : 0.9;
+      let ok = 0;
+      for (let i = 0; i < lot.molds; i++) if (Math.random() < passRate) ok++;
+      lot.ok = ok; lot.rej = lot.molds - ok;
+    }
+    if (lot.stage === 7) {
+      S.good += lot.ok; S.bad += lot.rej;
+      S.kgMicelio += lot.ok * KG_PER_PIECE; S.kgCompost += lot.rej * KG_PER_PIECE;
+      lot.gone = "client";
+      S.exits.push({ id: lot.id, kind: "client" });
+      log(lot.name + " despachado: " + lot.ok + " piezas aprobadas" + (lot.rej ? ", " + lot.rej + " al compost." : "."), "good");
+      continue;
+    }
+    lot.stage += 1;
+    if (lot.stage === 4) { lot.col = 0; lot.slot = freeSlot(); lot.left = 1; log(lot.name + " entra al cuarto de incubación."); }
+    else lot.left = STAGES[lot.stage].hours;
+    if (lot.stage === 5) log(lot.name + " colonizado: pasa a desmolde y secado.");
+  }
+  S.lots = S.lots.filter((l) => !l.gone || (l.leaving = (l.leaving ?? 6) - 1) > 0);
+
+  const inUse = S.lots.filter((l) => !l.gone && l.stage <= 4).length;
+  const need = lotSize() * KG_PER_PIECE;
+  if (isWorkHour(t) && inUse < capacity() && S.pile >= need && t - S.lastStart >= 1) {
+    const lot = { id: S.nextId, name: "L-" + String(S.nextId).padStart(3, "0"), stage: 0, left: STAGES[0].hours, molds: lotSize(), kg: need, col: 0, slot: -1 };
+    S.nextId++; S.pile -= need; S.lastStart = t; S.lots.push(lot);
+    if (S.nextId <= 4 || S.nextId % 10 === 0) log(lot.name + " inicia con " + fmt.format(need) + " kg de poda (" + lot.molds + " moldes).");
+  }
+  if (t % 24 === 18) {
+    const reserve = (capacity() * need) / Math.max(1, P.days) * 2 + need;
+    const extra = Math.max(0, S.pile - reserve);
+    if (extra > 0) {
+      if (P.comp) S.kgCompost += extra; else S.kgRelleno += extra;
+      S.pile -= extra;
+    }
+  }
+  if (S.roomT > 30) S.hotHours++; else S.hotHours = 0;
+  if (S.hotHours === 3) log("Alerta: el cuarto lleva 3 h arriba de 30 °C.", "bad");
+  if (S.roomH < 72 && !S.alerts.dry) { S.alerts.dry = true; log("Alerta: humedad baja en incubación (" + fmt.format(S.roomH) + " %).", "bad"); }
+  if (S.roomH >= 75) S.alerts.dry = false;
+  S.history.push({ t, T: S.roomT, A: S.ambT, H: S.roomH });
+  if (S.history.length > 72) S.history.shift();
+  S.t += 1;
+}
+
+// =====================================================================
+// Escena 3D
+// =====================================================================
+const viewport = $("viewport");
+let renderer = null;
+try {
+  renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+} catch (err) {
+  $("webgl-fallback").hidden = false;
+}
+const W = (x, y, z) => new THREE.Vector3(x - 4, y, z - 3);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color("#1b2118");
+scene.fog = new THREE.Fog("#1b2118", 24, 52);
+const camera = new THREE.PerspectiveCamera(38, 1.6, 0.1, 140);
+let controls = null, labelRenderer = null;
+const pickables = [];
+const zoneTiles = [];
+const zoneLabels = [];
+
+const M = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.85, metalness: 0, ...o });
+const mat = {
+  ground: M("#2a3426", { roughness: 1 }),
+  path: M("#575a49", { roughness: 1 }),
+  slab: M("#d4d0c2", { roughness: 0.95 }),
+  corridor: M("#b8b5a3", { roughness: 0.95 }),
+  wall: M("#ebe8dc", { roughness: 0.9 }),
+  glass: new THREE.MeshStandardMaterial({ color: "#d4e6d2", transparent: true, opacity: 0.2, roughness: 0.1, depthWrite: false, side: THREE.DoubleSide }),
+  frame: M("#7d8a72", { roughness: 0.5, metalness: 0.2 }),
+  steel: M("#bcc2b9", { roughness: 0.38, metalness: 0.25 }),
+  darkSteel: M("#6f756c", { roughness: 0.5, metalness: 0.2 }),
+  green: M("#4f7d3b", { roughness: 0.6 }),
+  wood: M("#8b6a43"),
+  chips: M("#a07a4c", { roughness: 1 }),
+  leaves: M("#5f8a3e"),
+  kraft: M("#c49a64", { roughness: 0.9 }),
+  white: M("#f1f0e8", { roughness: 0.55 }),
+  rubber: M("#2b2f28"),
+  curtain: new THREE.MeshStandardMaterial({ color: "#e2f2d6", transparent: true, opacity: 0.4, roughness: 0.3, depthWrite: false, side: THREE.DoubleSide }),
+  yellow: M("#d8b23a"),
+  shirt: M("#5c6f3c"), skin: M("#cfb28e"), pants: M("#3a4035"),
+  compost: M("#3f3a26", { roughness: 1 }),
+  pile: M("#8d7849", { roughness: 1 }),
+  pallet: M("#a5865a"),
+  bin: M("#4d554a", { roughness: 0.7 }),
+};
+const ledMat = (c) => new THREE.MeshStandardMaterial({ color: "#111111", emissive: c, emissiveIntensity: 2 });
+
+function addTo(parent, mesh, zone) {
+  mesh.castShadow = true; mesh.receiveShadow = true;
+  if (zone !== undefined) { mesh.userData.zone = zone; pickables.push(mesh); }
+  parent.add(mesh);
+  return mesh;
+}
+// Caja apoyada: (x, z) es el centro en planta y y es la base
+function box(w, h, d, material, x, y, z, parent = scene, zone) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), material);
+  m.position.copy(W(x, y + h / 2, z));
+  return addTo(parent, m, zone);
+}
+function cyl(rTop, rBot, h, material, x, y, z, parent = scene, zone, seg = 24) {
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(rTop, rBot, h, seg), material);
+  m.position.copy(W(x, y + h / 2, z));
+  return addTo(parent, m, zone);
+}
+function table(cx, cz, w, d, h, topMat, zone) {
+  box(w, 0.05, d, topMat, cx, h - 0.05, cz, scene, zone);
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) box(0.05, h - 0.05, 0.05, mat.darkSteel, cx + sx * (w / 2 - 0.06), 0, cz + sz * (d / 2 - 0.06), scene, zone);
+  box(w - 0.12, 0.03, d - 0.12, mat.darkSteel, cx, 0.18, cz, scene, zone);
+}
+function wall(x1, z1, x2, z2, h, material, gaps = []) {
+  const horizontal = z1 === z2;
+  const a0 = horizontal ? Math.min(x1, x2) : Math.min(z1, z2);
+  const a1 = horizontal ? Math.max(x1, x2) : Math.max(z1, z2);
+  let cur = a0;
+  const segs = [];
+  for (const [g0, g1] of gaps.slice().sort((p, q) => p[0] - q[0])) { if (g0 > cur) segs.push([cur, g0]); cur = Math.max(cur, g1); }
+  if (cur < a1) segs.push([cur, a1]);
+  const made = [];
+  for (const [s0, s1] of segs) {
+    const len = s1 - s0, mid = (s0 + s1) / 2, t = 0.12;
+    const m = horizontal ? box(len, h, t, material, mid, 0, z1) : box(t, h, len, material, x1, 0, mid);
+    if (material.transparent) { m.castShadow = false; m.renderOrder = 2; }
+    made.push(m);
+  }
+  return made;
+}
+function makeLabel(html, cls = "") {
+  const div = document.createElement("div");
+  div.className = "lbl " + cls;
+  div.innerHTML = html;
+  return new CSS2DObject(div);
+}
+
+let sun, hemi, ovenGlass, ovenLight, acLed, sensorLed, cabinetLed, chipperBody, pileMesh, compostMesh, rellenoFill;
+let racksGroup, mist, acFlow, lotsGroup, demo, demoLabel, testerPiston, pistonBaseY = 0;
+const workers = [];
+const palletBoxes = [];
+let selectOutline = null;
+let pileLabel, compostLabel, clientLabel, rellenoLabel;
+const CHIPPER_X = 2.3 - 4;
+
+function buildScene() {
+  // Luz
+  hemi = new THREE.HemisphereLight("#eef3e0", "#4a3f2c", 1.5);
+  scene.add(hemi);
+  sun = new THREE.DirectionalLight("#fff3da", 2.4);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  Object.assign(sun.shadow.camera, { left: -11, right: 11, top: 11, bottom: -11, near: 1, far: 50 });
+  sun.shadow.bias = -0.0004;
+  sun.shadow.normalBias = 0.02;
+  scene.add(sun, sun.target);
+
+  // Terreno y caminos
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(90, 90), mat.ground);
+  ground.rotation.x = -Math.PI / 2; ground.position.y = -0.1; ground.receiveShadow = true;
+  scene.add(ground);
+  const pathStrip = (x, z, w, d) => { const p = new THREE.Mesh(new THREE.PlaneGeometry(w, d), mat.path); p.rotation.x = -Math.PI / 2; p.position.copy(W(x, -0.095, z)); p.receiveShadow = true; scene.add(p); };
+  pathStrip(-1.3, 1.25, 2.6, 1.3);
+  pathStrip(8.9, 4.6, 1.8, 1.3);
+  pathStrip(4.78, 6.45, 0.9, 0.7);
+  pathStrip(6.95, 6.8, 4.9, 0.7);
+
+  // Losa, pisos por zona y pasillo
+  box(8.4, 0.1, 6.4, mat.slab, 4, -0.1, 3);
+  for (const zn of ZONES) {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(zn.w - 0.06, zn.d - 0.06), M(zn.floor, { roughness: 0.95 }));
+    m.rotation.x = -Math.PI / 2;
+    m.position.copy(W(zn.x + zn.w / 2, 0.004, zn.z + zn.d / 2));
+    m.receiveShadow = true;
+    m.userData.zone = zn.id;
+    scene.add(m); pickables.push(m); zoneTiles.push(m);
+  }
+  const corr = new THREE.Mesh(new THREE.PlaneGeometry(8, 0.7), mat.corridor);
+  corr.rotation.x = -Math.PI / 2; corr.position.copy(W(4, 0.003, 2.85)); corr.receiveShadow = true; scene.add(corr);
+  box(8, 0.006, 0.04, mat.yellow, 4, 0.004, 2.53);
+  box(8, 0.006, 0.04, mat.yellow, 4, 0.004, 3.17);
+
+  // Muros en corte (1.1 m) y divisiones
+  const H = 1.1;
+  wall(0, 0, 8, 0, H, mat.wall);
+  wall(0, 0, 0, 3.2, H, mat.wall, [[0.7, 1.8]]);
+  wall(8, 0, 8, 6, H, mat.wall, [[4.0, 5.2]]);
+  wall(4.4, 6, 8, 6, H, mat.wall, [[4.5, 5.05]]);
+  wall(3, 0, 3, 2.5, H, mat.wall, [[1.6, 2.5]]);
+  wall(5, 2.5, 8, 2.5, H, mat.wall, [[6.0, 6.8]]);
+  wall(6.3, 3.2, 6.3, 6, H, mat.wall, [[3.2, 3.9]]);
+  // Cuarto de incubación: paredes translúcidas para ver adentro
+  const HG = 2.3;
+  wall(0, 3.2, 4.4, 3.2, HG, mat.glass, [[3.3, 4.0]]);
+  wall(0, 3.2, 0, 6, HG, mat.glass);
+  wall(0, 6, 4.4, 6, HG, mat.glass);
+  wall(4.4, 3.2, 4.4, 6, HG, mat.glass);
+  for (const [x1, z1, x2, z2] of [[0, 3.2, 3.3, 3.2], [4.0, 3.2, 4.4, 3.2], [0, 6, 4.4, 6], [0, 3.2, 0, 6], [4.4, 3.2, 4.4, 6]]) {
+    const horizontal = z1 === z2;
+    const len = horizontal ? x2 - x1 : z2 - z1;
+    const m = horizontal ? box(len, 0.06, 0.14, mat.frame, (x1 + x2) / 2, HG - 0.03, z1) : box(0.14, 0.06, len, mat.frame, x1, HG - 0.03, (z1 + z2) / 2);
+    m.castShadow = false;
+  }
+  for (const [x, z] of [[0, 3.2], [3.3, 3.2], [4.0, 3.2], [4.4, 3.2], [0, 6], [4.4, 6]]) box(0.1, HG, 0.1, mat.frame, x, 0, z);
+  // Cortina plástica entre zona sucia y zona limpia
+  for (let z = 0.12; z < 2.45; z += 0.2) {
+    const s = box(0.012, 2.0, 0.18, mat.curtain, 5, 0, z);
+    s.castShadow = false; s.renderOrder = 3;
+  }
+  box(0.08, 0.08, 2.45, mat.frame, 5, 2.0, 1.25);
+
+  // Zona 0: recepción y trituración
+  table(1.2, 0.55, 1.4, 0.7, 0.9, mat.steel, 0);
+  [["#7a5a36", 0.5], ["#5f8a3e", 1.0], ["#7a7d72", 1.5]].forEach(([c, x]) => {
+    cyl(0.22, 0.19, 0.55, mat.bin, x, 0, 2.05, scene, 0);
+    cyl(0.2, 0.2, 0.04, M(c), x, 0.5, 2.05, scene, 0);
+  });
+  chipperBody = new THREE.Group();
+  chipperBody.position.copy(W(2.3, 0, 0.7));
+  scene.add(chipperBody);
+  const cb = (w, h, d, m, x, y, z) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(x, y + h / 2, z); return addTo(chipperBody, b, 0); };
+  cb(0.9, 0.6, 0.7, mat.green, 0, 0.16, 0);
+  const hopper = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.28, 0.42, 4, 1), mat.green);
+  hopper.rotation.y = Math.PI / 4; hopper.position.set(-0.1, 0.97, -0.05); addTo(chipperBody, hopper, 0);
+  const chute = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.2, 0.55), mat.darkSteel);
+  chute.position.set(0.05, 0.75, 0.5); chute.rotation.x = 0.55; addTo(chipperBody, chute, 0);
+  for (const sx of [-0.42, 0.42]) {
+    const wh = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.08, 18), mat.rubber);
+    wh.rotation.z = Math.PI / 2; wh.position.set(sx, 0.15, 0); addTo(chipperBody, wh, 0);
+  }
+  box(0.55, 0.42, 0.55, mat.bin, 2.3, 0, 1.5, scene, 0);
+  box(0.5, 0.03, 0.5, mat.chips, 2.3, 0.4, 1.5, scene, 0);
+
+  // Zona 1: tratamiento térmico
+  box(1.1, 1.9, 0.75, mat.steel, 4.0, 0, 0.55, scene, 1);
+  box(0.02, 1.7, 0.01, mat.darkSteel, 4.0, 0.1, 0.93, scene, 1);
+  box(0.35, 0.18, 0.02, mat.darkSteel, 4.3, 1.55, 0.94, scene, 1);
+  cabinetLed = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.02), ledMat("#3a3a2a"));
+  cabinetLed.position.copy(W(4.38, 1.64, 0.955)); scene.add(cabinetLed);
+  for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) box(0.03, 1.15, 0.03, mat.darkSteel, 4.0 + sx * 0.3, 0.06, 1.6 + sz * 0.2, scene, 1);
+  for (const y of [0.27, 0.62, 0.97]) box(0.62, 0.02, 0.42, mat.steel, 4.0, y, 1.6, scene, 1);
+  for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) cyl(0.04, 0.04, 0.06, mat.rubber, 4.0 + sx * 0.28, 0, 1.6 + sz * 0.18, scene, 1, 12);
+
+  // Zona 2: moldeo (zona limpia)
+  table(6.5, 0.75, 1.9, 0.9, 0.9, mat.steel, 2);
+  for (const [x, z] of [[7.62, 0.45], [7.62, 1.05]]) for (let i = 0; i < 4; i++) box(0.46, 0.09, 0.32, mat.darkSteel, x, i * 0.1, z, scene, 2);
+  cyl(0.2, 0.15, 0.16, mat.steel, 7.25, 0.9, 0.55, scene, 2);
+
+  // Zona 3: cuarto de incubación
+  racksGroup = new THREE.Group(); scene.add(racksGroup);
+  box(0.95, 0.3, 0.22, mat.white, 1.3, 1.72, 3.33, scene, 3);
+  box(0.8, 0.03, 0.02, mat.darkSteel, 1.3, 1.76, 3.45, scene, 3);
+  acLed = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.03, 0.02), ledMat("#7cff7c"));
+  acLed.position.copy(W(1.68, 1.93, 3.445)); scene.add(acLed);
+  cyl(0.17, 0.19, 0.5, mat.white, 4.0, 0, 5.55, scene, 3);
+  cyl(0.05, 0.08, 0.08, mat.darkSteel, 4.0, 0.5, 5.55, scene, 3, 12);
+  box(0.05, 0.16, 0.12, mat.white, 0.09, 1.38, 4.6, scene, 3);
+  sensorLed = new THREE.Mesh(new THREE.SphereGeometry(0.018, 10, 8), ledMat("#7cff7c"));
+  sensorLed.position.copy(W(0.12, 1.5, 4.6)); scene.add(sensorLed);
+
+  // Zona 4: desmolde y secado
+  box(1.0, 1.3, 0.8, mat.steel, 5.7, 0, 3.85, scene, 4);
+  ovenGlass = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.5), new THREE.MeshStandardMaterial({ color: "#1e1f1b", emissive: "#ff8a2a", emissiveIntensity: 0, roughness: 0.2 }));
+  ovenGlass.position.copy(W(5.7, 0.78, 4.256)); scene.add(ovenGlass);
+  box(0.62, 0.04, 0.02, mat.darkSteel, 5.7, 1.1, 4.26, scene, 4);
+  ovenLight = new THREE.PointLight("#ff9a45", 0, 3.2, 2);
+  ovenLight.position.copy(W(5.7, 0.8, 4.6)); scene.add(ovenLight);
+  table(5.65, 5.3, 1.1, 0.7, 0.9, mat.steel, 4);
+
+  // Zona 5: calidad y despacho
+  table(7.15, 3.9, 1.3, 0.7, 0.9, mat.steel, 5);
+  box(0.34, 0.05, 0.28, mat.darkSteel, 7.6, 0.9, 3.9, scene, 5);
+  for (const sx of [-0.13, 0.13]) cyl(0.022, 0.022, 0.72, mat.steel, 7.6 + sx, 0.95, 3.9, scene, 5, 10);
+  box(0.38, 0.07, 0.12, mat.darkSteel, 7.6, 1.6, 3.9, scene, 5);
+  testerPiston = cyl(0.03, 0.03, 0.24, mat.steel, 7.6, 1.36, 3.9, scene, 5, 10);
+  pistonBaseY = testerPiston.position.y;
+  for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) box(0.03, 1.3, 0.03, mat.darkSteel, 7.15 + sx * 0.55, 0, 5.45 + sz * 0.21, scene, 5);
+  for (const y of [0.4, 0.9]) box(1.12, 0.03, 0.45, mat.steel, 7.15, y, 5.45, scene, 5);
+  for (const [x, y] of [[6.82, 0.43], [7.48, 0.93]]) box(0.34, 0.26, 0.3, mat.kraft, x, y, 5.45, scene, 5);
+
+  // Afuera: acopio de poda, contenedor al relleno, compost y clientes
+  pileMesh = new THREE.Mesh(new THREE.ConeGeometry(1, 1, 28), mat.pile);
+  pileMesh.position.copy(W(-1.7, -0.1, 1.25)); pileMesh.castShadow = true; pileMesh.receiveShadow = true;
+  scene.add(pileMesh);
+  for (let i = 0; i < 14; i++) {
+    const s = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.03, 0.7 + (i % 4) * 0.15, 6), i % 3 ? mat.wood : mat.leaves);
+    const a = i * 2.4, r = 0.2 + (i % 5) * 0.12;
+    s.position.set(Math.cos(a) * r, 0.15 + (i % 3) * 0.06, Math.sin(a) * r);
+    s.rotation.set(1.1 + (i % 3) * 0.3, a, 0.4);
+    s.castShadow = true;
+    pileMesh.add(s);
+  }
+  box(1.4, 0.85, 0.9, M("#4a5246", { roughness: 0.7 }), -1.6, -0.1, 3.4);
+  rellenoFill = box(1.3, 0.05, 0.8, mat.pile, -1.6, 0.7, 3.4);
+  compostMesh = new THREE.Mesh(new THREE.SphereGeometry(1, 28, 14, 0, Math.PI * 2, 0, Math.PI / 2), mat.compost);
+  compostMesh.position.copy(W(9.25, -0.1, 7.0)); compostMesh.castShadow = true; compostMesh.receiveShadow = true;
+  scene.add(compostMesh);
+  box(1.2, 0.14, 1.0, mat.pallet, 9.4, -0.1, 4.6);
+  const kraftGeo = new THREE.BoxGeometry(0.36, 0.28, 0.3);
+  for (let i = 0; i < 27; i++) {
+    const b = new THREE.Mesh(kraftGeo, mat.kraft);
+    const c = i % 3, r = Math.floor(i / 3) % 3, l = Math.floor(i / 9);
+    b.position.copy(W(9.4 - 0.38 + c * 0.38, 0.04 + 0.14 + l * 0.29, 4.6 - 0.32 + r * 0.32));
+    b.castShadow = true; b.visible = false; scene.add(b); palletBoxes.push(b);
+  }
+
+  // Personal (solo en jornada)
+  for (const [x, z, rot] of [[1.2, 1.15, Math.PI], [6.5, 1.45, Math.PI], [7.15, 4.55, 0]]) {
+    const g = new THREE.Group();
+    g.position.copy(W(x, 0, z)); g.rotation.y = rot;
+    const legs = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.8, 0.2), mat.pants); legs.position.y = 0.4;
+    const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.19, 0.42, 6, 12), mat.shirt); body.position.y = 1.12;
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.13, 16, 12), mat.skin); head.position.y = 1.62;
+    const cap = new THREE.Mesh(new THREE.SphereGeometry(0.135, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), M("#2f3b2a")); cap.position.y = 1.64;
+    for (const m of [legs, body, head, cap]) { m.castShadow = true; g.add(m); }
+    scene.add(g); workers.push(g);
+  }
+
+  // Partículas: niebla del humidificador y aire frío
+  mist = makeParticles(46, "#e9f5f7", 0.08, 0.55);
+  acFlow = makeParticles(34, "#bfe3f2", 0.06, 0.45);
+  resetParticles();
+
+  // Etiquetas de zonas y de afuera
+  for (const zn of ZONES) {
+    const back = zn.z < 3;
+    const lbl = makeLabel((zn.label || zn.name) + "<span class='cnt'></span>" + (zn.id === 3 ? "<span class='clim'></span>" : ""), "zone");
+    lbl.center.set(0.5, back ? 1 : 0);
+    lbl.position.copy(back ? W(zn.x + zn.w / 2, 1.2, 0) : W(zn.x + zn.w / 2, 0, 6.3));
+    scene.add(lbl); zoneLabels.push(lbl);
+  }
+  pileLabel = makeLabel("", "out"); pileLabel.position.copy(W(-1.7, 2.3, 1.25)); scene.add(pileLabel);
+  rellenoLabel = makeLabel("", "out"); rellenoLabel.position.copy(W(-1.6, 1.35, 3.4)); scene.add(rellenoLabel);
+  compostLabel = makeLabel("", "out"); compostLabel.center.set(0.5, 1); compostLabel.position.copy(W(9.25, 0.95, 7.0)); scene.add(compostLabel);
+  clientLabel = makeLabel("", "out"); clientLabel.position.copy(W(9.4, 1.55, 4.6)); scene.add(clientLabel);
+
+  buildRacks();
+
+  // Lotes de la simulación y lote de muestra del recorrido
+  lotsGroup = new THREE.Group(); scene.add(lotsGroup);
+  demo = new THREE.Mesh(lotGeo, new THREE.MeshStandardMaterial({ color: cPrep, roughness: 0.8, emissive: "#d9eb83", emissiveIntensity: 0.16 }));
+  demo.castShadow = true;
+  demo.add(new THREE.LineSegments(new THREE.EdgesGeometry(lotGeo), new THREE.LineBasicMaterial({ color: "#d9eb83" })));
+  demoLabel = makeLabel("Lote de muestra", "demo");
+  demoLabel.center.set(0.5, 1);
+  demoLabel.position.set(0, 0.32, 0);
+  demo.add(demoLabel);
+  demo.position.copy(PILE_TOP);
+  demo.visible = false;
+  scene.add(demo);
+}
+function makeParticles(n, color, size, opacity) {
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(n * 3), 3));
+  const pts = new THREE.Points(geo, new THREE.PointsMaterial({ color, size, transparent: true, opacity, depthWrite: false }));
+  pts.userData.life = new Float32Array(n);
+  pts.frustumCulled = false;
+  scene.add(pts);
+  return pts;
+}
+function spawnMist(pts, i) {
+  const p = W(4.0 + (Math.random() - 0.5) * 0.08, 0.6, 5.55 + (Math.random() - 0.5) * 0.08);
+  pts.geometry.attributes.position.setXYZ(i, p.x, p.y, p.z);
+  pts.userData.life[i] = 0;
+}
+function spawnAir(pts, i) {
+  const p = W(0.9 + Math.random() * 0.8, 1.72, 3.47);
+  pts.geometry.attributes.position.setXYZ(i, p.x, p.y, p.z);
+  pts.userData.life[i] = 0;
+}
+function resetParticles() {
+  for (const [pts, fn, rate] of [[mist, spawnMist, 0.5], [acFlow, spawnAir, 0.9]]) {
+    const n = pts.geometry.attributes.position.count;
+    for (let i = 0; i < n; i++) {
+      fn(pts, i);
+      const life = Math.random();
+      pts.userData.life[i] = life;
+      const pos = pts.geometry.attributes.position;
+      if (pts === mist) pos.setY(i, pos.getY(i) + life * rate * 2.2);
+      else pos.setXYZ(i, pos.getX(i), pos.getY(i) - life * 0.6, pos.getZ(i) + life * 1.6);
+    }
+    pts.geometry.attributes.position.needsUpdate = true;
+  }
+}
+function updateParticles(dt) {
+  mist.visible = P.hum; acFlow.visible = P.ac;
+  const pm = mist.geometry.attributes.position, pa = acFlow.geometry.attributes.position;
+  if (P.hum) {
+    for (let i = 0; i < pm.count; i++) {
+      const life = (mist.userData.life[i] += dt * 0.45);
+      if (life >= 1) { spawnMist(mist, i); continue; }
+      pm.setXYZ(i, pm.getX(i) + Math.sin(i * 7 + life * 6) * dt * 0.08, pm.getY(i) + dt * 0.5, pm.getZ(i) + Math.cos(i * 3 + life * 5) * dt * 0.08);
+    }
+    pm.needsUpdate = true;
+  }
+  if (P.ac) {
+    for (let i = 0; i < pa.count; i++) {
+      const life = (acFlow.userData.life[i] += dt * 0.55);
+      if (life >= 1) { spawnAir(acFlow, i); continue; }
+      pa.setXYZ(i, pa.getX(i), pa.getY(i) - dt * 0.35, pa.getZ(i) + dt * 0.9);
+    }
+    pa.needsUpdate = true;
+  }
+}
+
+// Estantes del cuarto: 10 lotes por estante (5 columnas × 2 niveles)
+const RACK_ROWS = [4.8, 4.0, 5.6];
+function buildRacks() {
+  for (const m of racksGroup.children) { const i = pickables.indexOf(m); if (i >= 0) pickables.splice(i, 1); m.geometry.dispose(); }
+  racksGroup.clear();
+  const n = Math.min(3, Math.ceil(capacity() / 10));
+  for (let r = 0; r < n; r++) {
+    const z = RACK_ROWS[r];
+    const add = (w, h, d, x, y, zz) => {
+      const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat.darkSteel);
+      m.position.copy(W(x, y + h / 2, zz));
+      addTo(racksGroup, m, 3);
+    };
+    for (const x of [0.35, 3.65]) for (const dz of [-0.2, 0.2]) add(0.04, 1.3, 0.04, x, 0, z + dz);
+    for (const y of [0.405, 1.005]) add(3.3, 0.03, 0.45, 2.0, y, z);
+  }
+}
+function slotPlan(i) {
+  const row = Math.min(2, Math.floor(i / 10)), j = i % 10;
+  return [0.72 + (j % 5) * 0.64, Math.floor(j / 5) ? 1.085 : 0.485, RACK_ROWS[row]];
+}
+
+// Lugares de cada etapa (los lotes extra se apilan) y recorridos por el pasillo
+const CARRY = 0.95, CORR = 2.85;
+const SPOTS = {
+  0: [[0.75, 0.975, 0.55], [1.2, 0.975, 0.55], [1.65, 0.975, 0.55]],
+  1: [[2.3, 0.5, 1.5]],
+  2: [[4.0, 0.335, 1.6], [4.0, 0.685, 1.6], [4.0, 1.035, 1.6]],
+  3: [[5.9, 0.975, 0.75], [6.5, 0.975, 0.75], [7.1, 0.975, 0.75]],
+  5: [[5.38, 0.975, 5.3], [5.92, 0.975, 5.3]],
+  6: [[6.75, 0.975, 3.9], [7.2, 0.975, 3.9]],
+  7: [[6.85, 0.465, 5.45], [7.45, 0.465, 5.45], [6.85, 0.965, 5.45], [7.45, 0.965, 5.45]]
+};
+const ENTRY = [2.2, 4.0, 6.4, 3.65, 4.75, 7.0];
+const DOORZ = [2.3, 2.3, 2.3, 3.4, 3.4, 3.4];
+function exitPts(zone, from) {
+  if (zone === -1) return [[-0.2, CARRY, 1.25], [0.5, CARRY, 1.25]];
+  const pts = [];
+  if (zone === 3) pts.push([4.0, CARRY, Math.min(5.3, Math.max(3.6, from[2] - 0.4))]);
+  pts.push([ENTRY[zone], CARRY, DOORZ[zone]], [ENTRY[zone], CARRY, CORR]);
+  return pts;
+}
+function enterPts(zone, to) {
+  const pts = [[ENTRY[zone], CARRY, CORR], [ENTRY[zone], CARRY, DOORZ[zone]]];
+  if (zone === 3) pts.push([4.0, CARRY, to[2] - 0.4], [to[0], CARRY, to[2] - 0.4]);
+  return pts;
+}
+function routePlan(fromZone, from, toZone, to) {
+  let pts = [];
+  if (fromZone === -1) pts = exitPts(-1, from);
+  else if (fromZone !== toZone) pts = exitPts(fromZone, from).concat(enterPts(toZone, to));
+  pts.push(to);
+  return pts;
+}
+function exitRoute(zone, from, kind) {
+  if (kind === "client") {
+    const pre = zone === 5 ? [] : exitPts(zone, from).concat(enterPts(5, [7.6, 0, 4.6]));
+    return pre.concat([[7.6, CARRY, 4.6], [8.4, CARRY, 4.6], [9.4, 0.5, 4.6]]);
+  }
+  const pre = zone === 4 ? [] : exitPts(zone, from).concat([[4.75, CARRY, CORR], [4.75, CARRY, 3.4]]);
+  return pre.concat([[4.75, CARRY, 4.6], [4.75, CARRY, 6.4], [4.75, CARRY, 6.8], [8.7, CARRY, 6.8], [9.25, 0.45, 7.0]]);
+}
+
+// Lotes en 3D
+const lotGeo = new THREE.BoxGeometry(0.46, 0.1, 0.32);
+const lot3d = new Map();
+const cPrep = new THREE.Color("#a07a4c"), cGrowA = new THREE.Color("#8b6a43"), cGrowB = new THREE.Color("#efe6c8"), cMold = new THREE.Color("#5b7f3a"), cDone = new THREE.Color("#efe6c8");
+const toPlan = (v) => [v.x + 4, v.y, v.z + 3];
+const PILE_TOP = W(-1.7, 1.0, 1.25);
+function targetFor(lot, counters) {
+  if (lot.stage === 4) return { zone: 3, plan: slotPlan(Math.max(0, lot.slot)) };
+  const zone = STAGES[lot.stage].zone;
+  const k = counters[lot.stage] = (counters[lot.stage] ?? -1) + 1;
+  const list = SPOTS[lot.stage];
+  const base = list[k % list.length];
+  const layer = Math.min(8, Math.floor(k / list.length));
+  return { zone, plan: [base[0], base[1] + layer * 0.11, base[2]] };
+}
+function ensureLotMesh(lot) {
+  let e = lot3d.get(lot.id);
+  if (!e) {
+    const m = new THREE.Mesh(lotGeo, new THREE.MeshStandardMaterial({ color: cPrep, roughness: 0.9 }));
+    m.castShadow = true; m.receiveShadow = true;
+    m.position.copy(W(-1.7, 1.0, 1.25));
+    lotsGroup.add(m);
+    e = { mesh: m, zone: -1, path: [], goal: null, exiting: null, fade: 1 };
+    lot3d.set(lot.id, e);
+  }
+  return e;
+}
+function setPath(e, planPts) { e.path = planPts.map((p) => W(p[0], p[1], p[2])); }
+function moveAlong(e, dt) {
+  let remaining = 2.4 * Math.min(6, Math.max(1, speed / 12)) * dt;
+  while (remaining > 0 && e.path.length) {
+    const next = e.path[0];
+    const d = e.mesh.position.distanceTo(next);
+    if (d <= remaining) { e.mesh.position.copy(next); e.path.shift(); remaining -= d; }
+    else { e.mesh.position.lerp(next, remaining / d); remaining = 0; }
+  }
+}
+function removeLot(id, e) { lotsGroup.remove(e.mesh); e.mesh.material.dispose(); lot3d.delete(id); }
+function updateLots(dt, time) {
+  for (const ev of S.exits.splice(0)) {
+    const e = lot3d.get(ev.id);
+    if (e && !e.exiting) { e.exiting = ev.kind; setPath(e, exitRoute(e.zone, toPlan(e.mesh.position), ev.kind)); }
+  }
+  const counters = {};
+  const alive = new Set();
+  for (const lot of S.lots) {
+    alive.add(lot.id);
+    if (lot.gone && !lot3d.has(lot.id)) continue;
+    const e = ensureLotMesh(lot);
+    if (lot.gone) {
+      if (!e.exiting) { e.exiting = lot.gone; setPath(e, exitRoute(e.zone, toPlan(e.mesh.position), lot.gone)); }
+      continue;
+    }
+    const tgt = targetFor(lot, counters);
+    const key = tgt.zone + ":" + tgt.plan.map((v) => v.toFixed(2)).join(",");
+    if (e.goal !== key) {
+      setPath(e, routePlan(e.zone, toPlan(e.mesh.position), tgt.zone, tgt.plan));
+      e.goal = key; e.zone = tgt.zone;
+    }
+    const m = e.mesh.material;
+    if (lot.moldy) { m.color.copy(cMold); m.emissive.set("#d4654a"); m.emissiveIntensity = 0.35 + 0.3 * Math.sin(time * 6); }
+    else {
+      m.emissiveIntensity = 0;
+      if (lot.stage <= 3) m.color.copy(cPrep);
+      else if (lot.stage === 4) m.color.copy(cGrowA).lerp(cGrowB, lot.col);
+      else m.color.copy(cDone);
+    }
+  }
+  for (const [id, e] of lot3d) {
+    if (!alive.has(id) && !e.exiting) { removeLot(id, e); continue; }
+    moveAlong(e, dt);
+    if (e.exiting && !e.path.length) {
+      e.fade -= dt * 1.6;
+      e.mesh.material.transparent = true;
+      e.mesh.material.opacity = Math.max(0, e.fade);
+      if (e.fade <= 0) removeLot(id, e);
+    }
+  }
+}
+
+// Selección de zonas
+let selectedZone = 3;
+function selectZone(id) {
+  selectedZone = id;
+  zoneTiles.forEach((m) => {
+    const on = m.userData.zone === id;
+    m.material.emissive.set(on ? "#d9eb83" : "#000000");
+    m.material.emissiveIntensity = on ? 0.28 : 0;
+  });
+  zoneLabels.forEach((l, i) => l.element.classList.toggle("sel", i === id));
+  if (renderer) {
+    if (selectOutline) { scene.remove(selectOutline); selectOutline.geometry.dispose(); }
+    const z = ZONES[id], i = 0.05;
+    const pts = [[z.x + i, z.z + i], [z.x + z.w - i, z.z + i], [z.x + z.w - i, z.z + z.d - i], [z.x + i, z.z + z.d - i]].map(([x, zz]) => W(x, 0.02, zz));
+    selectOutline = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: "#d9eb83" }));
+    scene.add(selectOutline);
+  }
+  lastZoneHtml = ""; lastHudZone = "";
+  renderZoneInfo();
+}
+
+// Cámara: vistas rápidas
+const VIEWS = {
+  general: { pos: [1.2, 10.2, 11.2], target: [0.7, 0, 0.9] },
+  recepcion: { pos: [-0.4, 4.4, 3.2], target: [-2.6, 0.4, -1.5] },
+  incubacion: { pos: [-0.9, 4.6, 7.2], target: [-1.8, 0.5, 1.6] },
+  despacho: { pos: [4.8, 4.4, 7.0], target: [3.0, 0.5, 1.5] }
+};
+let camTween = null;
+function goView(name, instant = false) {
+  const v = VIEWS[name];
+  $$(".vbtn").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.view === name)));
+  if (!controls) return;
+  const to = { pos: new THREE.Vector3(...v.pos), target: new THREE.Vector3(...v.target) };
+  if (EMBED && name === "general") { to.pos.set(1.1, 9.4, 11.0); to.target.set(0.7, 0, 1.2); }
+  if (instant) { camera.position.copy(to.pos); controls.target.copy(to.target); controls.update(); return; }
+  camTween = { t: 0, fromPos: camera.position.clone(), fromTarget: controls.target.clone(), to };
+}
+function updateCamTween(dt) {
+  if (!camTween) return;
+  camTween.t = Math.min(1, camTween.t + dt / 0.9);
+  const t = camTween.t, k = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+  camera.position.lerpVectors(camTween.fromPos, camTween.to.pos, k);
+  controls.target.lerpVectors(camTween.fromTarget, camTween.to.target, k);
+  if (t >= 1) camTween = null;
+}
+
+// Estado visual de la planta
+const glassCool = new THREE.Color("#d4e6d2"), glassHot = new THREE.Color("#e8977d");
+let lastCounts = "";
+function setLabel(obj, html) { if (obj.userData.html !== html) { obj.element.innerHTML = html; obj.userData.html = html; } }
+function updatePlant(dt, time) {
+  const hour = tour.active ? 11 : (S.t % 24) + Math.min(acc, 0.99);
+  const ang = Math.PI * (hour - 6) / 12;
+  const day = Math.max(0, Math.sin(ang));
+  sun.position.set(Math.cos(ang) * 11, 4 + 10 * Math.max(0.12, day), 5);
+  sun.intensity = 0.35 + 2.3 * day;
+  hemi.intensity = 0.95 + 0.6 * day;
+  // Cuarto de incubación
+  const heat = THREE.MathUtils.clamp((S.roomT - 28) / 4, 0, 1);
+  mat.glass.color.copy(glassCool).lerp(glassHot, heat);
+  mat.glass.opacity = 0.2 + heat * 0.18;
+  acLed.material.emissive.set(P.ac ? "#7cff7c" : "#ff4a3a");
+  const alarm = S.roomT > 30 || S.roomH < 72;
+  sensorLed.material.emissive.set(alarm ? "#ff4a3a" : "#7cff7c");
+  sensorLed.material.emissiveIntensity = Math.sin(time * (alarm ? 9 : 3)) > 0 ? 2.4 : 0.4;
+  // Equipos activos
+  const live = S.lots.filter((l) => !l.gone);
+  const ts = tour.active ? (tour.delivered ? 8 : tour.step) : null;
+  const drying = tour.active ? ts === 5 : live.some((l) => l.stage === 5);
+  ovenGlass.material.emissiveIntensity += ((drying ? 1.6 : 0) - ovenGlass.material.emissiveIntensity) * Math.min(1, dt * 3);
+  ovenLight.intensity = drying ? 2.2 + Math.sin(time * 5) * 0.15 : 0;
+  cabinetLed.material.emissive.set((tour.active ? ts === 2 : live.some((l) => l.stage === 2)) ? "#ff8a2a" : "#3a3a2a");
+  const chipping = tour.active ? ts === 1 : running && isWorkHour(S.t) && live.some((l) => l.stage === 1);
+  testerPiston.position.y = pistonBaseY - (tour.active && ts === 6 ? 0.06 + 0.06 * Math.sin(time * 3) : 0);
+  chipperBody.position.x = CHIPPER_X + (chipping ? Math.sin(time * 70) * 0.006 : 0);
+  // Personal en jornada
+  const work = isWorkHour(S.t);
+  workers.forEach((w, i) => { w.visible = work || tour.active; w.children[2].position.y = 1.62 + Math.sin(time * 2 + i) * 0.01; });
+  // Afuera
+  const pr = Math.min(2.4, 0.45 + 0.035 * Math.sqrt(S.pile));
+  pileMesh.scale.set(pr, Math.max(0.25, pr * 0.55), pr);
+  pileMesh.position.y = -0.1 + pileMesh.scale.y / 2;
+  const cr = Math.min(1.1, 0.15 + 0.012 * Math.sqrt(S.kgCompost));
+  compostMesh.scale.set(cr, cr * 0.45, cr);
+  compostMesh.visible = S.kgCompost > 0;
+  rellenoFill.position.y = -0.1 + 0.05 + Math.min(0.75, S.kgRelleno / 40000 * 0.75);
+  rellenoFill.visible = S.kgRelleno > 0;
+  const boxes = Math.min(27, Math.ceil(S.good / Math.max(1, lotSize())));
+  const shown = tour.active ? (tour.delivered && !tour.path.length ? 1 : 0) : boxes;
+  palletBoxes.forEach((b, i) => { b.visible = i < shown; });
+  updateParticles(dt);
+  // Etiquetas
+  const counts = ZONES.map(() => 0);
+  if (!tour.active) for (const l of live) counts[STAGES[l.stage].zone]++;
+  const key = counts.join(",");
+  if (key !== lastCounts) {
+    lastCounts = key;
+    zoneLabels.forEach((lbl, i) => { lbl.element.querySelector(".cnt").textContent = counts[i] ? counts[i] + (counts[i] === 1 ? " lote" : " lotes") : ""; });
+  }
+  setLabel(pileLabel, "Poda del parque<small>" + kgOrT(S.pile).join(" ") + " en acopio</small>");
+  setLabel(rellenoLabel, "Al relleno de Metapán<small>" + kgOrT(S.kgRelleno).join(" ") + "</small>");
+  setLabel(compostLabel, "Compost para jardines<small>" + kgOrT(S.kgCompost).join(" ") + "</small>");
+  setLabel(clientLabel, "Clientes de logística<small>" + fmt.format(S.good) + " piezas</small>");
+  const clim = zoneLabels[3].element.querySelector(".clim");
+  const climTxt = fmt1.format(S.roomT) + " °C · " + fmt.format(S.roomH) + " %";
+  if (clim.textContent !== climTxt) clim.textContent = climTxt;
+  const climCls = "clim" + (alarm ? " bad" : S.roomT > 28.5 || S.roomH < 78 ? " meh" : "");
+  if (clim.className !== climCls) clim.className = climCls;
+}
+
+// Recorrido del proceso: un lote de muestra pasa por las 8 etapas en orden
+const TOUR = [
+  { zone: 0, spot: [1.2, 0.975, 0.55], cam: [1.5, 0.5, 0.9] },
+  { zone: 0, spot: [2.3, 0.5, 1.5], cam: [2.1, 0.5, 1.2] },
+  { zone: 1, spot: [4.0, 0.685, 1.6], cam: [4.0, 0.6, 1.2] },
+  { zone: 2, spot: [6.5, 0.975, 0.75], cam: [6.4, 0.6, 1.0] },
+  { zone: 3, spot: [2.0, 0.485, 4.8], cam: [2.1, 0.5, 4.6] },
+  { zone: 4, spot: [5.38, 0.975, 5.3], cam: [5.4, 0.6, 4.6] },
+  { zone: 5, spot: [6.75, 0.975, 3.9], cam: [7.0, 0.6, 4.1] },
+  { zone: 5, spot: [6.85, 0.965, 5.45], cam: [7.4, 0.6, 4.9] }
+];
+const FIRST_STEP = [0, 2, 3, 4, 5, 6];
+const TOUR_OFFSET = new THREE.Vector3(1.8, 5.2, 3.8);
+const STEP_SECONDS = 7, TRAVEL_SECONDS = 2.4, DELIVERY_SECONDS = 4;
+const TOUR_TOTAL = STEP_SECONDS * 8 + DELIVERY_SECONDS; // 60 s
+const tour = { active: false, step: -1, playing: false, manual: false, t: 0, zone: -1, delivered: false, path: [], speed: 2.6 };
+function pathLength(from, pts) {
+  let len = 0, prev = from;
+  for (const p of pts) { len += prev.distanceTo(p); prev = p; }
+  return len;
+}
+const two = (n) => String(n).padStart(2, "0");
+function tourRoute(fromZone, from, toZone, to) {
+  if (fromZone !== -1) return routePlan(fromZone, from, toZone, to);
+  const pts = exitPts(-1, from);
+  if (toZone !== 0) pts.push([ENTRY[0], CARRY, DOORZ[0]], [ENTRY[0], CARRY, CORR], ...enterPts(toZone, to));
+  pts.push(to);
+  return pts;
+}
+function flyTo(plan) {
+  if (!controls) return;
+  const target = W(...plan);
+  if (EMBED) target.x -= 0.8; // la tarjeta de la etapa ocupa la izquierda
+  $$(".vbtn").forEach((b) => b.setAttribute("aria-pressed", "false"));
+  camTween = { t: 0, fromPos: camera.position.clone(), fromTarget: controls.target.clone(), to: { pos: target.clone().add(TOUR_OFFSET), target } };
+}
+function clearZoneHighlight() {
+  zoneTiles.forEach((m) => { m.material.emissive.set("#000000"); m.material.emissiveIntensity = 0; });
+  zoneLabels.forEach((l) => l.element.classList.remove("sel"));
+  if (selectOutline) { scene.remove(selectOutline); selectOutline.geometry.dispose(); selectOutline = null; }
+}
+function resetDemo() {
+  tour.zone = -1; tour.delivered = false; tour.path = [];
+  if (!demo) return;
+  demo.position.copy(PILE_TOP);
+  demo.material.transparent = false; demo.material.opacity = 1;
+  demo.visible = tour.active;
+}
+function goStep(i) {
+  tour.step = i; tour.t = 0;
+  if (i < 0) {
+    tour.manual = false;
+    resetDemo();
+    clearZoneHighlight();
+    goView("general");
+  } else {
+    if (tour.delivered) resetDemo();
+    const st = TOUR[i];
+    if (demo) {
+      tour.path = tourRoute(tour.zone, toPlan(demo.position), st.zone, st.spot).map((p) => W(p[0], p[1], p[2]));
+      tour.speed = Math.max(0.6, pathLength(demo.position, tour.path) / TRAVEL_SECONDS);
+    }
+    tour.zone = st.zone;
+    selectZone(st.zone);
+    flyTo(st.cam);
+  }
+  renderTour();
+}
+function finishTour() {
+  tour.playing = false; tour.manual = false; tour.delivered = true; tour.t = 0;
+  if (demo) {
+    tour.path = exitRoute(5, toPlan(demo.position), "client").map((p) => W(p[0], p[1], p[2]));
+    tour.speed = Math.max(0.6, pathLength(demo.position, tour.path) / TRAVEL_SECONDS);
+  }
+  flyTo([8.6, 0.5, 4.8]);
+  renderTour();
+}
+function tourPlay() {
+  if (!tour.active) setMode("tour");
+  if (tour.playing) { tour.playing = false; tour.manual = false; renderTour(); return; }
+  tour.playing = true; tour.manual = false;
+  if (tour.step < 0 || tour.delivered) { goStep(-1); tour.playing = true; goStep(0); }
+  renderTour();
+}
+function tourElapsed() {
+  if (tour.delivered) return STEP_SECONDS * 8 + Math.min(tour.t, DELIVERY_SECONDS);
+  if (tour.step < 0) return 0;
+  return tour.step * STEP_SECONDS + Math.min(tour.t, STEP_SECONDS);
+}
+let lastTourTime = "";
+function renderTourTime() {
+  const sec = Math.min(TOUR_TOTAL, Math.floor(tourElapsed()));
+  const txt = Math.floor(sec / 60) + ":" + two(sec % 60) + " / 1:00";
+  if (txt === lastTourTime) return;
+  lastTourTime = txt;
+  $$(".tour-time").forEach((el) => { el.textContent = txt; });
+}
+function updateTour(dt) {
+  if (!tour.active || !demo) return;
+  const slot = tour.delivered ? DELIVERY_SECONDS : STEP_SECONDS;
+  const clockOn = tour.playing || tour.manual || tour.delivered;
+  if (clockOn) {
+    tour.t = tour.playing ? tour.t + dt : Math.min(slot, tour.t + dt);
+    let remaining = tour.speed * dt;
+    while (remaining > 0 && tour.path.length) {
+      const next = tour.path[0];
+      const d = demo.position.distanceTo(next);
+      if (d <= remaining) { demo.position.copy(next); tour.path.shift(); remaining -= d; }
+      else { demo.position.lerp(next, remaining / d); remaining = 0; }
+    }
+  }
+  const m = demo.material;
+  if (tour.delivered) {
+    if (!tour.path.length) { m.transparent = true; m.opacity = THREE.MathUtils.clamp(1 - (tour.t - TRAVEL_SECONDS) / 1.2, 0, 1); }
+  } else if (tour.step <= 3) m.color.copy(cPrep);
+  else if (tour.step === 4) m.color.copy(cGrowA).lerp(cGrowB, THREE.MathUtils.clamp((tour.t - TRAVEL_SECONDS) / (STEP_SECONDS - TRAVEL_SECONDS - 0.6), 0, 1));
+  else m.color.copy(cDone);
+  if (tour.playing && tour.t >= STEP_SECONDS) {
+    if (tour.step < TOUR.length - 1) goStep(tour.step + 1);
+    else finishTour();
+  }
+  renderTourTime();
+}
+function tourCard() {
+  if (tour.delivered) return { html: "<span class='kicker'>Entrega · 08/08</span><h3>La pieza llega al cliente</h3><p class='zone-line'>Clientes de logística</p><p>Las piezas aprobadas salen a los clientes del parque. Las rechazadas y la poda que sobra van al compost.</p>", space: "Cada lote queda vinculado al cliente que lo usó, para la constancia anual de residuos." };
+  if (tour.step < 0) return { html: "<span class='kicker'>Recorrido del proceso</span><h3>Un lote, de la poda al cliente</h3><p>En un minuto, seguí un lote por las ocho etapas del piloto, de la poda al cliente. Tocá «Reproducir proceso» o elegí una etapa.</p>", space: "Espacio de referencia para el piloto de 8 × 6 m (48 m²), por confirmar con Aristos." };
+  const ph = PHASES[tour.step];
+  return { html: "<span class='kicker'>" + ph.group + " · " + two(tour.step + 1) + "/08</span><h3>" + ph.title + "</h3><p class='zone-line'>" + ph.zone + "</p><p>" + ph.description + "</p><p><strong>Control</strong> · " + ph.check + "</p>", space: ph.space };
+}
+function renderTour() {
+  $$(".tstep").forEach((b) => {
+    const i = Number(b.dataset.step);
+    if (tour.active && i === tour.step && !tour.delivered) b.setAttribute("aria-current", "step"); else b.removeAttribute("aria-current");
+    b.classList.toggle("done", tour.active && (tour.delivered || i < tour.step));
+  });
+  const label = tour.playing ? "❚❚ Pausar" : tour.delivered ? "↺ Repetir proceso" : tour.step >= 0 ? "▶ Seguir proceso" : "▶ Reproducir proceso";
+  $$(".tour-play").forEach((b) => { b.textContent = label; b.setAttribute("aria-pressed", String(tour.playing)); });
+  renderTourTime();
+  if (demoLabel) setLabel(demoLabel, tour.delivered ? "Entregado" : tour.step >= 0 ? two(tour.step + 1) + " · " + PHASES[tour.step].short : "Lote de muestra");
+  lastZoneHtml = ""; lastHudZone = "";
+  renderZoneInfo();
+  placeHud();
+}
+function setMode(mode) {
+  const on = mode === "tour";
+  tour.active = on;
+  document.body.classList.toggle("mode-tour", on);
+  document.body.classList.toggle("mode-sim", !on);
+  $$(".mode-btn").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mode === mode)));
+  if (lotsGroup) lotsGroup.visible = !on;
+  if (on) {
+    setRunning(false);
+    if (demo) demo.visible = true;
+    goStep(tour.delivered ? -1 : tour.step);
+  } else {
+    tour.playing = false;
+    if (demo) demo.visible = false;
+    selectZone(selectedZone);
+    goView("general");
+    renderTour();
+  }
+  lastCounts = "";
+  renderPanels();
+}
+function buildStepLists() {
+  $$(".tsteps").forEach((list) => {
+    PHASES.forEach((ph, i) => {
+      const li = document.createElement("li");
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "tstep"; b.dataset.step = i;
+      b.innerHTML = "<span>" + two(i + 1) + "</span>" + ph.short;
+      b.addEventListener("click", () => { if (!tour.active) setMode("tour"); tour.playing = false; tour.manual = true; goStep(i); });
+      li.append(b); list.append(li);
+    });
+  });
+}
+
+// Interacción: clic en zonas
+const raycaster = new THREE.Raycaster();
+const ndc = new THREE.Vector2();
+let down = null;
+function pick(ev) {
+  const r = renderer.domElement.getBoundingClientRect();
+  ndc.set(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1);
+  raycaster.setFromCamera(ndc, camera);
+  const hit = raycaster.intersectObjects(pickables, false)[0];
+  return hit && hit.object.userData.zone !== undefined ? hit.object.userData.zone : null;
+}
+function placeHud() {
+  if (!EMBED) return;
+  const bottom = document.querySelector(tour.active ? ".tour-bar" : ".hud-bottom");
+  $("h-zone").style.bottom = (bottom.offsetHeight + 18) + "px";
+}
+function resize() {
+  placeHud();
+  if (!renderer) return;
+  const w = viewport.clientWidth, h = viewport.clientHeight;
+  if (!w || !h) return;
+  renderer.setSize(w, h);
+  labelRenderer.setSize(w, h);
+  camera.aspect = w / h;
+  camera.fov = w / h < 1 ? 55 : w / h < 1.4 ? 44 : w / h > 2.05 ? 40 : 38;
+  camera.updateProjectionMatrix();
+}
+function initRenderer() {
+  if (!renderer) return;
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFShadowMap;
+  renderer.toneMapping = THREE.NeutralToneMapping;
+  viewport.prepend(renderer.domElement);
+  labelRenderer = new CSS2DRenderer();
+  labelRenderer.domElement.className = "labels";
+  renderer.domElement.after(labelRenderer.domElement);
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.08;
+  controls.maxPolarAngle = Math.PI * 0.47;
+  controls.minDistance = 3;
+  controls.maxDistance = 30;
+  controls.addEventListener("start", () => { camTween = null; $$(".vbtn").forEach((b) => b.setAttribute("aria-pressed", "false")); });
+  buildScene();
+  goView("general", true);
+  renderer.domElement.addEventListener("pointerdown", (ev) => { down = { x: ev.clientX, y: ev.clientY, t: performance.now() }; });
+  renderer.domElement.addEventListener("pointerup", (ev) => {
+    if (!down) return;
+    if (Math.hypot(ev.clientX - down.x, ev.clientY - down.y) < 6 && performance.now() - down.t < 500) {
+      const z = pick(ev);
+      if (z !== null) { if (tour.active) { tour.playing = false; tour.manual = true; goStep(FIRST_STEP[z]); } else selectZone(z); }
+    }
+    down = null;
+  });
+  let hoverT = 0;
+  renderer.domElement.addEventListener("pointermove", (ev) => {
+    if (ev.buttons || performance.now() - hoverT < 60) return;
+    hoverT = performance.now();
+    renderer.domElement.style.cursor = pick(ev) !== null ? "pointer" : "grab";
+  });
+  resize();
+  new ResizeObserver(resize).observe(viewport);
+  addEventListener("resize", resize);
+}
+
+// =====================================================================
+// Paneles
+// =====================================================================
+const kgOrT = (kg) => kg >= 10000 ? [fmt1.format(kg / 1000), "t"] : [fmt.format(kg), "kg"];
+function setKpi(id, value, unit) { $(id).innerHTML = value + (unit ? " <small>" + unit + "</small>" : ""); }
+let lastZoneHtml = "", lastHudZone = "";
+function zoneLots(z, max) {
+  const here = S.lots.filter((l) => !l.gone && STAGES[l.stage].zone === z.id);
+  const list = here.slice(0, max).map((l) => {
+    const st = STAGES[l.stage];
+    let state = st.short;
+    if (l.stage === 4) state = l.moldy ? "con moho" : "colonizado " + Math.round(l.col * 100) + " %";
+    else if (st.work && !isWorkHour(S.t)) state += " · espera la jornada";
+    else state += " · faltan " + Math.max(0, Math.ceil(l.left)) + " h";
+    return "<li>" + l.name + " — " + state + "</li>";
+  }).join("");
+  const extra = here.length > max ? "<li>y " + (here.length - max) + " lotes más</li>" : "";
+  return { count: here.length, html: here.length ? "<strong>" + here.length + (here.length === 1 ? " lote" : " lotes") + " aquí ahora</strong><ul>" + list + extra + "</ul>" : "<strong>Sin lotes en este momento.</strong>" };
+}
+function renderZoneInfo() {
+  if (tour.active) {
+    const card = tourCard();
+    if (EMBED) {
+      if (card.html !== lastHudZone) { $("h-zone").innerHTML = card.html; lastHudZone = card.html; }
+    } else {
+      const html = "<div>" + card.html + "</div><div class='zone-now'><strong>Cómo se vería.</strong> " + card.space + "</div>";
+      if (html !== lastZoneHtml) { $("zone-info").innerHTML = html; lastZoneHtml = html; }
+    }
+    return;
+  }
+  const z = ZONES[selectedZone];
+  if (EMBED) {
+    const { count } = zoneLots(z, 0);
+    let now = count ? count + (count === 1 ? " lote" : " lotes") + " aquí ahora" : "Sin lotes en este momento";
+    if (z.id === 3) now += " · " + fmt1.format(S.roomT) + " °C · " + fmt.format(S.roomH) + " %";
+    const html = "<span class='kicker'>" + z.tag + "</span><h3>" + z.name + "</h3><p>" + z.what + "</p><p><strong>" + now + ".</strong></p>";
+    if (html !== lastHudZone) { $("h-zone").innerHTML = html; lastHudZone = html; }
+    return;
+  }
+  let live = zoneLots(z, 6).html;
+  if (z.id === 3) live += "<p style='margin-top:8px'>Clima: " + fmt1.format(S.roomT) + " °C · " + fmt.format(S.roomH) + " % de humedad.</p>";
+  const html = "<div><span class='kicker'>" + z.tag + "</span><h3>" + z.name + "</h3><p>" + z.what + "</p><p><strong>Equipo.</strong> " + z.eq + "</p><p><strong>Control.</strong> " + z.check + "</p></div><div class='zone-now'>" + live + "</div>";
+  if (html !== lastZoneHtml) { $("zone-info").innerHTML = html; lastZoneHtml = html; }
+}
+let chartT = -1;
+function renderChart() {
+  if (chartT === S.t) return;
+  chartT = S.t;
+  const H = S.history, w = 360, h = 130, padL = 30, padR = 34, padT = 8, padB = 18;
+  const x = (i) => padL + (i / 71) * (w - padL - padR);
+  const yT = (v) => padT + (1 - (v - 18) / 20) * (h - padT - padB);
+  const yH = (v) => padT + (1 - (v - 40) / 60) * (h - padT - padB);
+  let out = "<rect x='" + padL + "' y='" + yT(28) + "' width='" + (w - padL - padR) + "' height='" + (yT(24) - yT(28)) + "' fill='#d9eb8355'/>";
+  [20, 25, 30, 35].forEach((v) => { out += "<line x1='" + padL + "' x2='" + (w - padR) + "' y1='" + yT(v) + "' y2='" + yT(v) + "' stroke='#e0e1d2'/><text x='" + (padL - 4) + "' y='" + (yT(v) + 4) + "' font-size='10' text-anchor='end' fill='#555c4c'>" + v + "°</text>"; });
+  [60, 80, 100].forEach((v) => { out += "<text x='" + (w - padR + 4) + "' y='" + (yH(v) + 4) + "' font-size='10' fill='#3f7fa3'>" + v + "%</text>"; });
+  const line = (key, yf, color, width) => {
+    if (H.length < 2) return "";
+    const off = 72 - H.length;
+    return "<polyline fill='none' stroke='" + color + "' stroke-width='" + width + "' stroke-linejoin='round' points='" + H.map((p, i) => x(i + off).toFixed(1) + "," + yf(p[key]).toFixed(1)).join(" ") + "'/>";
+  };
+  out += line("H", yH, "#3f7fa3", 1.6) + line("A", yT, "#b9a77a", 1.6) + line("T", yT, "#c2532f", 2.4);
+  out += "<text x='" + padL + "' y='" + (h - 4) + "' font-size='10' fill='#555c4c'>hace 72 h</text><text x='" + (w - padR) + "' y='" + (h - 4) + "' font-size='10' text-anchor='end' fill='#555c4c'>ahora</text>";
+  $("chart").innerHTML = out;
+}
+function renderLog() {
+  if (!logDirty) return;
+  logDirty = false;
+  $("log").innerHTML = S.log.slice(0, 40).map((e) => "<li><time>" + stamp(e.t) + "</time><span class='" + e.kind + "'>" + e.text + "</span></li>").join("");
+}
+function alertMessage() {
+  if (S.roomT > 30) return { cls: "", html: "<strong>Cuarto a " + fmt1.format(S.roomT) + " °C.</strong> El micelio crece más lento y sube el riesgo de moho. Plan B: revisar el aire acondicionado o mover la incubación a un contenedor refrigerado." };
+  if (S.roomH < 72) return { cls: "", html: "<strong>Humedad baja (" + fmt.format(S.roomH) + " %).</strong> El hongo se frena. Plan B: revisar el humidificador y tapar los moldes con plástico perforado." };
+  if (!P.past) return { cls: "warn", html: "<strong>Pasteurización deficiente.</strong> Los lotes tienen más riesgo de moho. Plan B: pasteurizar más tiempo y reforzar la separación entre zona sucia y limpia." };
+  if (P.herb) return { cls: "warn", html: "<strong>Grama con herbicidas.</strong> La colonización es más lenta y se rechazan más piezas. Plan B: usar solo ramas y hojas y mandar la grama tratada al compost." };
+  return null;
+}
+function renderPanels() {
+  const day = Math.floor(S.t / 24), h = Math.floor(S.t % 24);
+  const timeTxt = DAYS[day % 7] + " " + String(h).padStart(2, "0") + ":00" + (isWorkHour(S.t) ? " · en jornada" : "");
+  const diverted = S.kgMicelio + S.kgCompost, tons = diverted / 1000;
+  const savings = "$" + fmt.format(tons * 85) + "–" + fmt.format(tons * 115);
+  const alert = alertMessage();
+  if (EMBED) {
+    $("h-day").textContent = "Día " + (day + 1);
+    $("h-time").textContent = timeTxt;
+    $("hk-div").textContent = kgOrT(diverted).join(" ");
+    $("hk-good").textContent = fmt.format(S.good);
+    $("hk-sav").textContent = savings;
+    const ha = $("h-alert");
+    ha.hidden = !alert;
+    if (alert) { ha.className = "hud-alert " + alert.cls; if (ha.innerHTML !== alert.html) ha.innerHTML = alert.html; }
+    renderZoneInfo();
+    return;
+  }
+  $("clock-day").textContent = "Día " + (day + 1);
+  $("clock-time").textContent = timeTxt;
+  setKpi("k-diverted", ...kgOrT(diverted));
+  setKpi("k-micelio", ...kgOrT(S.kgMicelio));
+  setKpi("k-good", fmt.format(S.good));
+  setKpi("k-bad", fmt.format(S.bad));
+  $("k-savings").textContent = savings;
+  const daysRun = Math.max(1, (S.t - 7) / 24);
+  setKpi("k-energy", fmt.format(S.energy), "kWh · " + fmt.format(S.energy / daysRun) + "/día");
+  $("v-temp").textContent = fmt1.format(S.roomT);
+  $("v-hum").textContent = fmt.format(S.roomH);
+  $("v-amb").textContent = fmt1.format(S.ambT);
+  $("s-temp").className = "sensor" + (S.roomT > 30 ? " bad" : S.roomT > 28.5 || S.roomT < 23 ? " meh" : "");
+  $("s-hum").className = "sensor" + (S.roomH < 72 ? " bad" : S.roomH < 78 ? " meh" : "");
+  const inProcess = S.lots.filter((l) => !l.gone).reduce((a, l) => a + l.kg, 0);
+  const total = Math.max(1, S.kgMicelio + S.kgCompost + S.kgRelleno + S.pile + inProcess);
+  const pct = (v) => (100 * v / total).toFixed(2) + "%";
+  $("f-mic").style.width = pct(S.kgMicelio + inProcess);
+  $("f-comp").style.width = pct(S.kgCompost);
+  $("f-rel").style.width = pct(S.kgRelleno);
+  $("f-pile").style.width = pct(S.pile);
+  $("fk-mic").textContent = kgOrT(S.kgMicelio).join(" ") + (inProcess ? " + " + kgOrT(inProcess).join(" ") + " en proceso" : "");
+  $("fk-comp").textContent = kgOrT(S.kgCompost).join(" ");
+  $("fk-rel").textContent = kgOrT(S.kgRelleno).join(" ");
+  $("fk-pile").textContent = kgOrT(S.pile).join(" ");
+  const box = $("alert");
+  box.hidden = !alert;
+  if (alert) { box.className = "alert " + alert.cls; if (box.innerHTML !== alert.html) box.innerHTML = alert.html; }
+  renderChart();
+  renderLog();
+  renderZoneInfo();
+}
+
+// =====================================================================
+// Controles
+// =====================================================================
+const MESSAGES = {
+  ac: ["Aire acondicionado encendido.", "Falla del aire acondicionado: el cuarto empieza a calentarse."],
+  hum: ["Humidificador encendido.", "Humidificador apagado: la humedad va a bajar."],
+  past: ["Pasteurización corregida.", "Pasteurización deficiente en los próximos lotes."],
+  herb: ["Llegó grama con herbicidas.", "Grama sin herbicidas: solo ramas y hojas limpias."],
+  comp: ["El excedente de poda va al compost del parque.", "El excedente de poda vuelve a ir al relleno."]
+};
+function syncControls() {
+  for (const key of ["ac", "hum", "past", "herb", "comp"]) {
+    const sw = document.querySelector(".switch[data-key='" + key + "']");
+    if (sw) sw.checked = P[key];
+    const chip = document.querySelector(".hchip[data-key='" + key + "']");
+    if (chip) chip.setAttribute("aria-pressed", String(P[key]));
+  }
+  $$(".preset, .hscale").forEach((b) => b.setAttribute("aria-pressed", String(Number(b.dataset.molds) === P.molds)));
+  $("p-molds").value = P.molds;
+  $("o-molds").textContent = fmt.format(P.molds);
+}
+function setParam(key, value) {
+  if (P[key] === value) return;
+  P[key] = value;
+  log(MESSAGES[key][value ? 0 : 1], (key === "herb" ? value : !value) ? "bad" : "good");
+  syncControls();
+  renderPanels();
+}
+function setRunning(on) {
+  if (on && tour.active) setMode("sim");
+  running = on;
+  const label = on ? "❚❚ Pausar" : (S.t > 7 ? "▶ Seguir" : "▶ Iniciar");
+  for (const id of ["play", "h-play"]) { const b = $(id); b.setAttribute("aria-pressed", String(on)); b.textContent = label; }
+}
+function setSpeed(v) {
+  speed = v;
+  $$(".speed, .hspeed").forEach((o) => o.setAttribute("aria-pressed", String(Number(o.dataset.speed) === v)));
+}
+function setMolds(v, announce) {
+  const oldCap = capacity();
+  P.molds = v;
+  syncControls();
+  if (capacity() !== oldCap) {
+    let i = 0;
+    for (const l of S.lots) if (l.stage === 4 && !l.gone) l.slot = Math.min(i++, capacity() - 1);
+    if (renderer) buildRacks();
+  }
+  if (announce) log("Escala cambiada a " + fmt.format(P.molds) + " moldes (" + lotSize() + " por lote).");
+}
+function reset() {
+  S = freshState();
+  for (let i = 0; i < 72; i++) S.history.push({ t: i, T: 25 + Math.random() * 0.6, A: ambient(S.t - 72 + i), H: 85 + Math.random() * 2 });
+  S.ambT = ambient(S.t); S.roomT = 25.3;
+  chartT = -1; lastZoneHtml = ""; lastHudZone = ""; lastCounts = ""; acc = 0;
+  for (const [id, e] of lot3d) removeLot(id, e);
+  log("Simulación lista. Presioná Iniciar para arrancar el turno del lunes.");
+  setRunning(false);
+  renderPanels();
+}
+
+$("play").addEventListener("click", () => setRunning(!running));
+$("h-play").addEventListener("click", () => setRunning(!running));
+$$(".speed, .hspeed").forEach((b) => b.addEventListener("click", () => setSpeed(Number(b.dataset.speed))));
+$("reset").addEventListener("click", reset);
+$("h-reset").addEventListener("click", reset);
+$$(".switch").forEach((sw) => sw.addEventListener("change", () => setParam(sw.dataset.key, sw.checked)));
+$$(".hchip").forEach((b) => b.addEventListener("click", () => setParam(b.dataset.key, !P[b.dataset.key])));
+$$(".preset, .hscale").forEach((b) => b.addEventListener("click", () => setMolds(Number(b.dataset.molds), true)));
+$("p-molds").addEventListener("input", (e) => setMolds(Number(e.target.value), false));
+$("p-tons").addEventListener("input", (e) => { P.tons = Number(e.target.value); $("o-tons").textContent = P.tons + " t"; });
+$("p-days").addEventListener("input", (e) => { P.days = Number(e.target.value); $("o-days").textContent = P.days + " días"; });
+$("p-set").addEventListener("input", (e) => { P.set = Number(e.target.value); $("o-set").textContent = P.set + " °C"; });
+$$(".vbtn").forEach((b) => b.addEventListener("click", () => goView(b.dataset.view)));
+$$(".mode-btn").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
+$$(".tour-play").forEach((b) => b.addEventListener("click", tourPlay));
+
+// En la diapositiva: las flechas siguen cambiando de diapositiva
+if (EMBED && window.parent !== window) {
+  addEventListener("keydown", (ev) => {
+    if (ev.target.closest?.("input, select, textarea")) return;
+    if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
+    if (!["ArrowRight", "ArrowLeft", "PageDown", "PageUp", "Home", "End", "Escape", "f", "F"].includes(ev.key)) return;
+    ev.preventDefault();
+    window.parent.postMessage({ type: "miceliaip-key", key: ev.key }, "*");
+  });
+}
+
+// Recorrido automático: arranca solo al abrir el gemelo o la diapositiva
+function tourStart() {
+  if (!tour.active) setMode("tour");
+  goStep(-1);
+  tour.playing = true; tour.manual = false;
+  goStep(0);
+  renderTour();
+}
+function tourPause() {
+  if (!tour.playing) return;
+  tour.playing = false;
+  renderTour();
+}
+if (EMBED && window.parent !== window) {
+  addEventListener("message", (ev) => {
+    const data = ev.data;
+    if (ev.source !== window.parent || !data || data.type !== "miceliaip-twin") return;
+    if (data.action === "start") tourStart();
+    else if (data.action === "pause") tourPause();
+  });
+}
+
+// =====================================================================
+// Bucle
+// =====================================================================
+let panelTick = 0, elapsed = 0, lastNow = 0;
+function frame(now) {
+  const raw = Math.max(0, (now - lastNow) / 1000);
+  const dt = Math.min(0.1, raw);
+  lastNow = now;
+  elapsed += dt;
+  if (running) {
+    acc += dt * speed;
+    let n = 0;
+    while (acc >= 1 && n < 400) { step(); acc -= 1; n++; }
+  }
+  if (renderer) {
+    updateCamTween(dt);
+    controls.update();
+    updateLots(dt, elapsed);
+    updateTour(Math.min(0.5, raw));
+    updatePlant(dt, elapsed);
+    renderer.render(scene, camera);
+    labelRenderer.render(scene, camera);
+  }
+  if (running || panelTick++ % 10 === 0) renderPanels();
+  requestAnimationFrame(frame);
+}
+
+S = freshState();
+initRenderer();
+reset();
+syncControls();
+buildStepLists();
+selectZone(3);
+setMode("tour");
+requestAnimationFrame((now) => { lastNow = now; frame(now); });
+if (EMBED && window.parent !== window) window.parent.postMessage({ type: "miceliaip-twin-ready" }, "*");
+else setTimeout(tourStart, 1200);
+</script>
+</body>
+</html>
